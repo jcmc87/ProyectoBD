@@ -1,25 +1,32 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { FinanceProvider } from './context/FinanceContext';
 import { RutaProtegida } from './components/RutaProtegida';
-import { PlantillaPrincipal } from './components/PlantillaPrincipal';
-import { PantallaLogin } from './pages/PantallaLogin';
-import { PantallaIngresos } from './pages/PantallaIngresos';
-import { PantallaEgresos } from './pages/PantallaEgresos';
-import { PantallaCuadreCaja } from './pages/PantallaCuadreCaja';
-import { PantallaAdministrador } from './pages/PantallaAdministrador';
+import { Layout } from './components/Layout';
+import { Login } from './components/Login';
+import { RegisterIncome } from './pages/user/RegisterIncome';
+import { RegisterExpense } from './pages/user/RegisterExpense';
+import { MyHistory } from './pages/user/MyHistory';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminIncomes } from './pages/admin/AdminIncomes';
+import { AdminExpenses } from './pages/admin/AdminExpenses';
 import { PantallaNoAutorizado } from './pages/PantallaNoAutorizado';
 
 /**
- * Componente Raíz de la Aplicación (App).
- * Configura la jerarquía de proveedores de contexto y el árbol de rutas:
- * 1. `ThemeProvider`: Manejo global de tema Claro / Oscuro con persistencia.
- * 2. `BrowserRouter`: Enrutamiento del cliente SPA.
- * 3. `AuthProvider`: Autenticación, sesión activa y verificación de roles.
- * 4. `FinanceProvider`: Gestión del estado financiero en memoria (ingresos, egresos y cuadre).
- * 5. `Routes`: Definición de rutas públicas (/login), privadas (/ingresos, /egresos, /cuadre) y administrativas (/admin).
+ * Componente de redirección inteligente en la raíz:
+ * - Si es Admin -> /admin/dashboard
+ * - Si es Usuario -> /user/income
+ */
+const RootRedirect: React.FC = () => {
+  const { isAdmin } = useAuth();
+  return <Navigate to={isAdmin ? '/admin/dashboard' : '/user/income'} replace />;
+};
+
+/**
+ * Enrutador Principal de la Aplicación (App.tsx).
+ * Estructurado en base a las especificaciones del Paso 2, Paso 3 y Paso 4.
  */
 export const App: React.FC = () => {
   return (
@@ -28,42 +35,62 @@ export const App: React.FC = () => {
         <AuthProvider>
           <FinanceProvider>
             <Routes>
-              {/* Ruta pública: Inicio de sesión */}
-              <Route path="/login" element={<PantallaLogin />} />
+              {/* 1. Paso 2: Pantalla de Login */}
+              <Route path="/login" element={<Login />} />
 
-              {/* Rutas protegidas que requieren sesión activa y comparten PlantillaPrincipal */}
+              {/* 2. Paso 2: Layout Principal Protegido con Navegación Dinámica */}
               <Route
                 path="/"
                 element={
                   <RutaProtegida>
-                    <PlantillaPrincipal />
+                    <Layout />
                   </RutaProtegida>
                 }
               >
-                {/* Redirección automática de la raíz a la pantalla de Ingresos */}
-                <Route index element={<Navigate to="/ingresos" replace />} />
+                {/* Redirección inteligente de raíz */}
+                <Route index element={<RootRedirect />} />
 
-                {/* Pantallas operativas accesibles para cualquier usuario autenticado */}
-                <Route path="ingresos" element={<PantallaIngresos />} />
-                <Route path="egresos" element={<PantallaEgresos />} />
-                <Route path="cuadre" element={<PantallaCuadreCaja />} />
+                {/* 3. Paso 3: Vistas del Usuario (Operador / Empleado) */}
+                <Route path="user/income" element={<RegisterIncome />} />
+                <Route path="user/expense" element={<RegisterExpense />} />
+                <Route path="user/history" element={<MyHistory />} />
 
-                {/* Pantalla exclusiva para administradores */}
+                {/* 4. Paso 4: Vistas del Administrador (Dashboard y Gestión) */}
                 <Route
-                  path="admin"
+                  path="admin/dashboard"
                   element={
                     <RutaProtegida requiredRole="admin">
-                      <PantallaAdministrador />
+                      <AdminDashboard />
+                    </RutaProtegida>
+                  }
+                />
+                <Route
+                  path="admin/incomes"
+                  element={
+                    <RutaProtegida requiredRole="admin">
+                      <AdminIncomes />
+                    </RutaProtegida>
+                  }
+                />
+                <Route
+                  path="admin/expenses"
+                  element={
+                    <RutaProtegida requiredRole="admin">
+                      <AdminExpenses />
                     </RutaProtegida>
                   }
                 />
 
-                {/* Pantalla de aviso de falta de permisos (403) */}
+                {/* Alias de compatibilidad */}
+                <Route path="ingresos" element={<Navigate to="/user/income" replace />} />
+                <Route path="egresos" element={<Navigate to="/user/expense" replace />} />
+                <Route path="cuadre" element={<Navigate to="/user/history" replace />} />
+                <Route path="admin" element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="unauthorized" element={<PantallaNoAutorizado />} />
               </Route>
 
-              {/* Redirección para cualquier ruta no mapeada */}
-              <Route path="*" element={<Navigate to="/ingresos" replace />} />
+              {/* Redirección fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </FinanceProvider>
         </AuthProvider>

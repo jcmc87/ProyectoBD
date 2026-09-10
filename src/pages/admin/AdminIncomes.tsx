@@ -5,7 +5,8 @@ import {
   Edit2, 
   Trash2, 
   Plus, 
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 import { Income, IncomeInput, PaymentMethod } from '../../types';
@@ -31,13 +32,13 @@ const formatDate = (dateStr: string): string => {
 
 /**
  * Vista de Gestión de Ingresos para el Administrador (src/pages/admin/AdminIncomes.tsx).
- * - Tabla con todos los ingresos de todos los usuarios.
+ * - Tabla con todos los ingresos de todos los usuarios conectada a Supabase.
  * - Buscador en tiempo real por descripción o usuario y filtro por fecha.
  * - Modales completos para Editar y Registrar ingresos.
  * - Eliminación de registros con confirmación de seguridad.
  */
 export const AdminIncomes: React.FC = () => {
-  const { incomes, addIncome, updateIncome, deleteIncome } = useFinance();
+  const { incomes, addIncome, updateIncome, deleteIncome, isLoading, refreshData } = useFinance();
 
   // Estados de búsqueda y filtros
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -45,6 +46,7 @@ export const AdminIncomes: React.FC = () => {
 
   // Estados del modal de edición/creación
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<IncomeInput>({
     amount: 0,
@@ -96,29 +98,34 @@ export const AdminIncomes: React.FC = () => {
   };
 
   /**
-   * Guarda cambios o crea nuevo registro
+   * Guarda cambios o crea nuevo registro en Supabase
    */
-  const handleSave = (e: React.FormEvent): void => {
+  const handleSave = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (formData.amount <= 0 || !formData.description.trim()) {
       alert('Ingresa un monto válido y una descripción.');
       return;
     }
 
-    if (editingId) {
-      updateIncome(editingId, formData);
-    } else {
-      addIncome(formData);
+    setIsSaving(true);
+    try {
+      if (editingId) {
+        await updateIncome(editingId, formData);
+      } else {
+        await addIncome(formData);
+      }
+      setIsModalOpen(false);
+    } finally {
+      setIsSaving(false);
     }
-    setIsModalOpen(false);
   };
 
   /**
-   * Elimina un ingreso con confirmación
+   * Elimina un ingreso con confirmación en Supabase
    */
-  const handleDelete = (id: string): void => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este registro de ingreso permanentemente?')) {
-      deleteIncome(id);
+  const handleDelete = async (id: string): Promise<void> => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este registro de ingreso permanentemente en Supabase?')) {
+      await deleteIncome(id);
     }
   };
 
@@ -141,13 +148,24 @@ export const AdminIncomes: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={handleOpenCreate}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nuevo Ingreso</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => refreshData()}
+            disabled={isLoading}
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition-colors text-xs font-semibold flex items-center space-x-1"
+            title="Sincronizar con Supabase"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            onClick={handleOpenCreate}
+            className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Ingreso</span>
+          </button>
+        </div>
       </div>
 
       {/* Barra de Búsqueda y Filtros */}
@@ -204,7 +222,7 @@ export const AdminIncomes: React.FC = () => {
             {filteredIncomes.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-10 text-center text-slate-400 dark:text-slate-500 text-xs">
-                  No se encontraron ingresos con los filtros seleccionados.
+                  {isLoading ? 'Cargando datos desde Supabase...' : 'No se encontraron ingresos con los filtros seleccionados.'}
                 </td>
               </tr>
             ) : (
@@ -258,7 +276,7 @@ export const AdminIncomes: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                {editingId ? 'Editar Ingreso' : 'Registrar Nuevo Ingreso'}
+                {editingId ? 'Editar Ingreso en Supabase' : 'Registrar Nuevo Ingreso'}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -328,9 +346,10 @@ export const AdminIncomes: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition-colors"
+                  disabled={isSaving}
+                  className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition-colors disabled:opacity-60"
                 >
-                  {editingId ? 'Guardar Cambios' : 'Registrar'}
+                  {isSaving ? 'Guardando...' : editingId ? 'Guardar Cambios' : 'Registrar'}
                 </button>
               </div>
             </form>

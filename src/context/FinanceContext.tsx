@@ -1,10 +1,19 @@
-import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
-import { Income, Expense, IncomeInput, ExpenseInput, FinanceContextType } from '../types';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect, useCallback } from 'react';
+import { 
+  Income, 
+  Expense, 
+  IncomeInput, 
+  ExpenseInput, 
+  FinanceContextType, 
+  PaymentMethod, 
+  ExpenseCategory 
+} from '../types';
 import { useAuth } from './AuthContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 /**
- * Valida si una fecha dada en formato string ISO corresponde exactamente al día de hoy (año, mes y día).
- * @param dateStr - Fecha en formato ISO 8601
+ * Valida si una fecha dada en formato string ISO corresponde exactamente al día de hoy.
+ * @param dateStr - Fecha en formato ISO 8601 o timestamp
  * @returns boolean - true si la fecha corresponde a la jornada actual
  */
 export const isToday = (dateStr: string): boolean => {
@@ -22,91 +31,56 @@ export const isToday = (dateStr: string): boolean => {
 };
 
 /**
- * Datos iniciales simulados (Mocks) con movimientos de HOY y de días anteriores para pruebas completas.
+ * Datos simulados iniciales (Mocks) para pruebas locales en caso de no tener Supabase configurado
  */
 const INITIAL_INCOMES: Income[] = [
-  // Movimiento 1 de Hoy
   {
-    id: 'inc-001',
+    id: '11111111-0000-0000-0000-000000000001',
     amount: 1250.00,
     paymentMethod: 'efectivo',
     description: 'Venta de productos en mostrador #1',
-    createdBy: 'usr-standard-002',
+    createdBy: '00000000-0000-0000-0000-000000000002',
     userName: 'Carlos López (Cajero)',
-    createdAt: new Date().toISOString(), // Hoy
+    createdAt: new Date().toISOString(),
   },
-  // Movimiento 2 de Hoy
   {
-    id: 'inc-002',
+    id: '11111111-0000-0000-0000-000000000002',
     amount: 840.50,
     paymentMethod: 'tarjeta',
     description: 'Cobro de servicio técnico con terminal POS',
-    createdBy: 'usr-standard-002',
+    createdBy: '00000000-0000-0000-0000-000000000002',
     userName: 'Carlos López (Cajero)',
-    createdAt: new Date().toISOString(), // Hoy
+    createdAt: new Date().toISOString(),
   },
-  // Movimiento de hace 3 días (Visible solo para Admin)
   {
-    id: 'inc-003',
+    id: '11111111-0000-0000-0000-000000000003',
     amount: 2100.00,
     paymentMethod: 'transferencia',
     description: 'Transferencia por factura corporativa #402',
-    createdBy: 'usr-admin-001',
+    createdBy: '00000000-0000-0000-0000-000000000001',
     userName: 'Ana Martínez (Admin)',
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  // Movimiento de hace 12 días (Visible solo para Admin)
-  {
-    id: 'inc-004',
-    amount: 3500.00,
-    paymentMethod: 'transferencia',
-    description: 'Anticipo por proyecto de consultoría financiera',
-    createdBy: 'usr-admin-001',
-    userName: 'Ana Martínez (Admin)',
-    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  // Movimiento de hace 45 días (Visible solo para Admin)
-  {
-    id: 'inc-005',
-    amount: 4800.00,
-    paymentMethod: 'tarjeta',
-    description: 'Venta de paquete de licencias empresariales',
-    createdBy: 'usr-admin-001',
-    userName: 'Ana Martínez (Admin)',
-    createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
 const INITIAL_EXPENSES: Expense[] = [
-  // Movimiento 1 de Hoy
   {
-    id: 'exp-001',
+    id: '22222222-0000-0000-0000-000000000001',
     category: 'insumos',
     amount: 150.00,
     description: 'Compra de bolsas y rollos de papel para caja',
-    createdBy: 'usr-standard-002',
+    createdBy: '00000000-0000-0000-0000-000000000002',
     userName: 'Carlos López (Cajero)',
-    createdAt: new Date().toISOString(), // Hoy
+    createdAt: new Date().toISOString(),
   },
-  // Movimiento de hace 2 días (Visible solo para Admin)
   {
-    id: 'exp-002',
+    id: '22222222-0000-0000-0000-000000000002',
     category: 'servicios',
     amount: 350.00,
     description: 'Pago de servicio eléctrico de oficina',
-    createdBy: 'usr-standard-002',
+    createdBy: '00000000-0000-0000-0000-000000000002',
     userName: 'Carlos López (Cajero)',
     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  // Movimiento de hace 10 días (Visible solo para Admin)
-  {
-    id: 'exp-003',
-    category: 'mantenimiento',
-    amount: 600.00,
-    description: 'Mantenimiento preventivo de aire acondicionado',
-    createdBy: 'usr-admin-001',
-    userName: 'Ana Martínez (Admin)',
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -117,129 +91,363 @@ interface FinanceProviderProps {
 }
 
 /**
- * Proveedor de Estado Financiero (FinanceProvider).
- * Gestiona en memoria las listas de ingresos y egresos, separando los acumulados históricos
- * (para administradores) de los movimientos exclusivos del día de hoy (para cajeros/usuarios).
+ * Proveedor Financiero (FinanceProvider) conectado directamente a Supabase.
+ * - Realiza consultas SELECT con JOIN a la tabla public.profiles para obtener nombres de usuario.
+ * - Efectúa INSERT, UPDATE y DELETE protegidos por las políticas de Row Level Security (RLS).
+ * - Calcula en memoria métricas globales y de la jornada actual (turno de hoy).
  */
 export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) => {
   const { user } = useAuth();
 
-  const [incomes, setIncomes] = useState<Income[]>(INITIAL_INCOMES);
-  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   /**
-   * Genera un identificador único para nuevos registros en memoria.
-   * @param prefix - Prefijo descriptivo ('inc' para ingresos, 'exp' para egresos)
-   * @returns string - Identificador único generado
+   * Carga los ingresos y egresos directamente desde las tablas de Supabase
    */
-  const generateId = (prefix: string): string => {
-    return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  };
+  const refreshData = useCallback(async (): Promise<void> => {
+    if (!isSupabaseConfigured) {
+      setIncomes(INITIAL_INCOMES);
+      setExpenses(INITIAL_EXPENSES);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // 1. Consultar tabla incomes con join a profiles
+      const { data: incomesData, error: incomesError } = await supabase
+        .from('incomes')
+        .select(`
+          id,
+          amount,
+          payment_method,
+          description,
+          created_by,
+          created_at,
+          profiles (
+            full_name
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (incomesError) {
+        console.error('Error al consultar incomes desde Supabase:', incomesError);
+      } else {
+        const mappedIncomes: Income[] = (incomesData || []).map((row: any) => ({
+          id: row.id,
+          amount: Number(row.amount),
+          paymentMethod: (row.payment_method as PaymentMethod) || 'efectivo',
+          description: row.description || '',
+          createdBy: row.created_by,
+          createdAt: row.created_at,
+          userName: row.profiles?.full_name || (row.created_by === user?.id ? user?.fullName : 'Usuario'),
+        }));
+        setIncomes(mappedIncomes);
+      }
+
+      // 2. Consultar tabla expenses con join a profiles
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('expenses')
+        .select(`
+          id,
+          category,
+          amount,
+          description,
+          created_by,
+          created_at,
+          profiles (
+            full_name
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (expensesError) {
+        console.error('Error al consultar expenses desde Supabase:', expensesError);
+      } else {
+        const mappedExpenses: Expense[] = (expensesData || []).map((row: any) => ({
+          id: row.id,
+          category: (row.category as ExpenseCategory) || 'otros',
+          amount: Number(row.amount),
+          description: row.description || '',
+          createdBy: row.created_by,
+          createdAt: row.created_at,
+          userName: row.profiles?.full_name || (row.created_by === user?.id ? user?.fullName : 'Usuario'),
+        }));
+        setExpenses(mappedExpenses);
+      }
+    } catch (err) {
+      console.error('Error inesperado al sincronizar finanzas con Supabase:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   /**
-   * Agrega un nuevo ingreso al estado en memoria.
-   * Autocompleta automáticamente ID, fecha actual ISO, usuario y nombre del creador.
-   * @param data - Datos del ingreso (monto, método de pago y descripción)
+   * Sincronizar datos al iniciar y cuando cambie el usuario en sesión
    */
-  const addIncome = (data: IncomeInput): void => {
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  // =========================================================================
+  // OPERACIONES CRUD CONECTADAS A SUPABASE
+  // =========================================================================
+
+  /**
+   * Inserta un nuevo ingreso en la tabla `incomes` de Supabase
+   * @param data - Datos del ingreso (monto, método de pago, descripción)
+   */
+  const addIncome = async (data: IncomeInput): Promise<boolean> => {
+    if (isSupabaseConfigured && user?.id) {
+      try {
+        const { error } = await supabase.from('incomes').insert([
+          {
+            amount: data.amount,
+            payment_method: data.paymentMethod,
+            description: data.description,
+            created_by: user.id,
+          },
+        ]);
+
+        if (error) {
+          console.error('Error insertando income en Supabase:', error);
+          alert('Error al registrar en Supabase: ' + error.message);
+          return false;
+        }
+
+        await refreshData();
+        return true;
+      } catch (err: any) {
+        console.error('Error de red al registrar ingreso:', err);
+        alert('Error de conexión con la base de datos.');
+        return false;
+      }
+    }
+
+    // Modo local offline
     const newIncome: Income = {
       ...data,
-      id: generateId('inc'),
-      createdBy: user?.id || 'anon',
+      id: `local-inc-${Date.now()}`,
+      createdBy: user?.id || 'local-user',
       userName: user?.fullName || 'Usuario',
       createdAt: new Date().toISOString(),
     };
     setIncomes((prev) => [newIncome, ...prev]);
+    return true;
   };
 
   /**
-   * Modifica un ingreso existente por su ID.
-   * @param id - Identificador del ingreso a actualizar
-   * @param data - Campos parciales a modificar
+   * Actualiza un ingreso en la tabla `incomes` de Supabase
+   * @param id - UUID del ingreso a actualizar
+   * @param data - Campos a modificar
    */
-  const updateIncome = (id: string, data: Partial<IncomeInput>): void => {
+  const updateIncome = async (id: string, data: Partial<IncomeInput>): Promise<boolean> => {
+    if (isSupabaseConfigured) {
+      try {
+        const updatePayload: Record<string, any> = {};
+        if (data.amount !== undefined) updatePayload.amount = data.amount;
+        if (data.paymentMethod !== undefined) updatePayload.payment_method = data.paymentMethod;
+        if (data.description !== undefined) updatePayload.description = data.description;
+
+        const { error } = await supabase
+          .from('incomes')
+          .update(updatePayload)
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error al actualizar ingreso en Supabase:', error);
+          alert('Error al actualizar: ' + error.message);
+          return false;
+        }
+
+        await refreshData();
+        return true;
+      } catch (err: any) {
+        console.error('Error de red al actualizar ingreso:', err);
+        return false;
+      }
+    }
+
+    // Modo local offline
     setIncomes((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...data } : item))
     );
+    return true;
   };
 
   /**
-   * Elimina un ingreso del estado en memoria por su ID.
-   * @param id - Identificador del ingreso a eliminar
+   * Elimina un ingreso de la tabla `incomes` de Supabase
+   * @param id - UUID del ingreso a eliminar
    */
-  const deleteIncome = (id: string): void => {
+  const deleteIncome = async (id: string): Promise<boolean> => {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('incomes')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error al eliminar ingreso en Supabase:', error);
+          alert('Error al eliminar: ' + error.message);
+          return false;
+        }
+
+        await refreshData();
+        return true;
+      } catch (err: any) {
+        console.error('Error de red al eliminar ingreso:', err);
+        return false;
+      }
+    }
+
+    // Modo local offline
     setIncomes((prev) => prev.filter((item) => item.id !== id));
+    return true;
   };
 
   /**
-   * Agrega un nuevo egreso al estado en memoria.
-   * Autocompleta automáticamente ID, fecha actual ISO, usuario y nombre del creador.
-   * @param data - Datos del egreso (monto, categoría y descripción)
+   * Inserta un nuevo egreso en la tabla `expenses` de Supabase
+   * @param data - Datos del egreso (monto, categoría, descripción)
    */
-  const addExpense = (data: ExpenseInput): void => {
+  const addExpense = async (data: ExpenseInput): Promise<boolean> => {
+    if (isSupabaseConfigured && user?.id) {
+      try {
+        const { error } = await supabase.from('expenses').insert([
+          {
+            amount: data.amount,
+            category: data.category,
+            description: data.description,
+            created_by: user.id,
+          },
+        ]);
+
+        if (error) {
+          console.error('Error insertando expense en Supabase:', error);
+          alert('Error al registrar en Supabase: ' + error.message);
+          return false;
+        }
+
+        await refreshData();
+        return true;
+      } catch (err: any) {
+        console.error('Error de red al registrar egreso:', err);
+        alert('Error de conexión con la base de datos.');
+        return false;
+      }
+    }
+
+    // Modo local offline
     const newExpense: Expense = {
       ...data,
-      id: generateId('exp'),
-      createdBy: user?.id || 'anon',
+      id: `local-exp-${Date.now()}`,
+      createdBy: user?.id || 'local-user',
       userName: user?.fullName || 'Usuario',
       createdAt: new Date().toISOString(),
     };
     setExpenses((prev) => [newExpense, ...prev]);
+    return true;
   };
 
   /**
-   * Modifica un egreso existente por su ID.
-   * @param id - Identificador del egreso a actualizar
-   * @param data - Campos parciales a modificar
+   * Actualiza un egreso en la tabla `expenses` de Supabase
+   * @param id - UUID del egreso a actualizar
+   * @param data - Campos a modificar
    */
-  const updateExpense = (id: string, data: Partial<ExpenseInput>): void => {
+  const updateExpense = async (id: string, data: Partial<ExpenseInput>): Promise<boolean> => {
+    if (isSupabaseConfigured) {
+      try {
+        const updatePayload: Record<string, any> = {};
+        if (data.amount !== undefined) updatePayload.amount = data.amount;
+        if (data.category !== undefined) updatePayload.category = data.category;
+        if (data.description !== undefined) updatePayload.description = data.description;
+
+        const { error } = await supabase
+          .from('expenses')
+          .update(updatePayload)
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error al actualizar egreso en Supabase:', error);
+          alert('Error al actualizar: ' + error.message);
+          return false;
+        }
+
+        await refreshData();
+        return true;
+      } catch (err: any) {
+        console.error('Error de red al actualizar egreso:', err);
+        return false;
+      }
+    }
+
+    // Modo local offline
     setExpenses((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...data } : item))
     );
+    return true;
   };
 
   /**
-   * Elimina un egreso del estado en memoria por su ID.
-   * @param id - Identificador del egreso a eliminar
+   * Elimina un egreso de la tabla `expenses` de Supabase
+   * @param id - UUID del egreso a eliminar
    */
-  const deleteExpense = (id: string): void => {
+  const deleteExpense = async (id: string): Promise<boolean> => {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('expenses')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error al eliminar egreso en Supabase:', error);
+          alert('Error al eliminar: ' + error.message);
+          return false;
+        }
+
+        await refreshData();
+        return true;
+      } catch (err: any) {
+        console.error('Error de red al eliminar egreso:', err);
+        return false;
+      }
+    }
+
+    // Modo local offline
     setExpenses((prev) => prev.filter((item) => item.id !== id));
+    return true;
   };
 
   // =========================================================================
-  // CÁLCULOS GLOBALES / HISTÓRICOS (ACCESO EXCLUSIVO PARA ADMINISTRADORES)
+  // CÁLCULOS GLOBALES (ADMINISTRADOR)
   // =========================================================================
 
-  /** Total acumulado histórico de ingresos */
   const totalIncome = useMemo(() => {
     return incomes.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   }, [incomes]);
 
-  /** Total acumulado histórico de egresos */
   const totalExpense = useMemo(() => {
     return expenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   }, [expenses]);
 
-  /** Balance neto histórico global (Ingresos - Egresos) */
   const netBalance = useMemo(() => {
     return totalIncome - totalExpense;
   }, [totalIncome, totalExpense]);
 
-  /** Total histórico acumulado de ventas en Efectivo */
   const incomeByCash = useMemo(() => {
     return incomes
       .filter((item) => item.paymentMethod === 'efectivo')
       .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   }, [incomes]);
 
-  /** Total histórico acumulado de ventas con Tarjeta */
   const incomeByCard = useMemo(() => {
     return incomes
       .filter((item) => item.paymentMethod === 'tarjeta')
       .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   }, [incomes]);
 
-  /** Total histórico acumulado de ventas por Transferencia */
   const incomeByTransfer = useMemo(() => {
     return incomes
       .filter((item) => item.paymentMethod === 'transferencia')
@@ -247,49 +455,41 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
   }, [incomes]);
 
   // =========================================================================
-  // CÁLCULOS EXCLUSIVOS DEL DÍA DE HOY (PARA USUARIO ESTÁNDAR / CUADRE DIARIO)
+  // CÁLCULOS EXCLUSIVOS DEL DÍA DE HOY (TURNO DIARIO DE USUARIO)
   // =========================================================================
 
-  /** Lista de ingresos registrados en la fecha actual */
   const todayIncomes = useMemo(() => {
     return incomes.filter((item) => isToday(item.createdAt));
   }, [incomes]);
 
-  /** Lista de egresos registrados en la fecha actual */
   const todayExpenses = useMemo(() => {
     return expenses.filter((item) => isToday(item.createdAt));
   }, [expenses]);
 
-  /** Total de ingresos recaudados exclusivamente en el turno de hoy */
   const todayTotalIncome = useMemo(() => {
     return todayIncomes.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   }, [todayIncomes]);
 
-  /** Total de egresos realizados exclusivamente en el turno de hoy */
   const todayTotalExpense = useMemo(() => {
     return todayExpenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   }, [todayExpenses]);
 
-  /** Balance final neto del turno de hoy (Ingresos de hoy - Egresos de hoy) */
   const todayNetBalance = useMemo(() => {
     return todayTotalIncome - todayTotalExpense;
   }, [todayTotalIncome, todayTotalExpense]);
 
-  /** Dinero físico recaudado en efectivo durante el día de hoy */
   const todayIncomeByCash = useMemo(() => {
     return todayIncomes
       .filter((item) => item.paymentMethod === 'efectivo')
       .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   }, [todayIncomes]);
 
-  /** Recaudación procesada por terminales POS (Tarjeta) en el día de hoy */
   const todayIncomeByCard = useMemo(() => {
     return todayIncomes
       .filter((item) => item.paymentMethod === 'tarjeta')
       .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   }, [todayIncomes]);
 
-  /** Recaudación depositada por Transferencias en el día de hoy */
   const todayIncomeByTransfer = useMemo(() => {
     return todayIncomes
       .filter((item) => item.paymentMethod === 'transferencia')
@@ -315,6 +515,8 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
         todayIncomeByCash,
         todayIncomeByCard,
         todayIncomeByTransfer,
+        isLoading,
+        refreshData,
         addIncome,
         updateIncome,
         deleteIncome,
@@ -329,8 +531,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
 };
 
 /**
- * Hook personalizado para acceder al contexto financiero global.
- * @returns FinanceContextType - Objeto con los datos, totales y operaciones CRUD
+ * Hook personalizado para acceder al contexto financiero
  */
 export const useFinance = (): FinanceContextType => {
   const context = useContext(FinanceContext);

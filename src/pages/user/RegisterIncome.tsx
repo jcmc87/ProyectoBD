@@ -21,6 +21,7 @@ const formatMoney = (amount: number): string => {
 /**
  * Vista de Registro de Ingresos para el Usuario (src/pages/user/RegisterIncome.tsx).
  * - Formulario con campos: Monto, Método de Pago (Efectivo, Tarjeta, Transferencia) y Descripción (opcional).
+ * - Conectado directamente a la tabla `incomes` de Supabase.
  * - Feedback visual de confirmación con toast/alerta temporal de éxito.
  * - Muestra el total recaudado en el turno del día.
  */
@@ -33,6 +34,7 @@ export const RegisterIncome: React.FC = () => {
   const [description, setDescription] = useState<string>('');
   const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
   const [lastRegisteredAmount, setLastRegisteredAmount] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const todayFormatted = new Date().toLocaleDateString('es-HN', {
     weekday: 'long',
@@ -42,10 +44,10 @@ export const RegisterIncome: React.FC = () => {
   });
 
   /**
-   * Procesa el registro del ingreso y emite el feedback visual
+   * Procesa el registro del ingreso en Supabase y emite el feedback visual
    * @param e - Evento de formulario
    */
-  const handleSubmit = (e: React.FormEvent): void => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     const numAmount = parseFloat(amount);
 
@@ -54,23 +56,31 @@ export const RegisterIncome: React.FC = () => {
       return;
     }
 
-    // Agregar ingreso al contexto financiero
-    addIncome({
-      amount: numAmount,
-      paymentMethod,
-      description: description.trim() || 'Ingreso general de venta',
-    });
+    setIsSubmitting(true);
 
-    // Guardar para feedback visual y limpiar campos
-    setLastRegisteredAmount(numAmount);
-    setShowSuccessToast(true);
-    setAmount('');
-    setDescription('');
+    try {
+      // Agregar ingreso a Supabase
+      const ok = await addIncome({
+        amount: numAmount,
+        paymentMethod,
+        description: description.trim() || 'Ingreso general de venta',
+      });
 
-    // Ocultar mensaje de éxito tras 3.5 segundos
-    setTimeout(() => {
-      setShowSuccessToast(false);
-    }, 3500);
+      if (ok !== false) {
+        // Guardar para feedback visual y limpiar campos
+        setLastRegisteredAmount(numAmount);
+        setShowSuccessToast(true);
+        setAmount('');
+        setDescription('');
+
+        // Ocultar mensaje de éxito tras 3.5 segundos
+        setTimeout(() => {
+          setShowSuccessToast(false);
+        }, 3500);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -102,7 +112,7 @@ export const RegisterIncome: React.FC = () => {
               Registrar Nuevo Ingreso
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Ingresa los cobros y ventas del turno actual.
+              Ingresa los cobros y ventas del turno actual (guardado en Supabase).
             </p>
           </div>
         </div>
@@ -212,10 +222,11 @@ export const RegisterIncome: React.FC = () => {
           {/* Botón de Envío */}
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2"
+            disabled={isSubmitting}
+            className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-60"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Guardar Ingreso</span>
+            <span>{isSubmitting ? 'Guardando en Supabase...' : 'Guardar Ingreso'}</span>
           </button>
         </form>
       </div>

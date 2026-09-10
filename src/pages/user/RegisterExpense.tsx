@@ -30,6 +30,7 @@ const CATEGORIES: { value: ExpenseCategory; label: string; description: string }
 /**
  * Vista de Registro de Egresos para el Usuario (src/pages/user/RegisterExpense.tsx).
  * - Formulario con campos: Monto, Categoría (Servicios, Insumos, Salarios, Mantenimiento, Otros) y Descripción (opcional).
+ * - Conectado directamente a la tabla `expenses` de Supabase.
  * - Feedback visual de confirmación con toast/alerta temporal de éxito.
  * - Muestra el total de egresos acumulado en el turno del día.
  */
@@ -42,6 +43,7 @@ export const RegisterExpense: React.FC = () => {
   const [description, setDescription] = useState<string>('');
   const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
   const [lastRegisteredAmount, setLastRegisteredAmount] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const todayFormatted = new Date().toLocaleDateString('es-HN', {
     weekday: 'long',
@@ -51,10 +53,10 @@ export const RegisterExpense: React.FC = () => {
   });
 
   /**
-   * Procesa el registro del egreso y emite el feedback visual
+   * Procesa el registro del egreso en Supabase y emite el feedback visual
    * @param e - Evento de formulario
    */
-  const handleSubmit = (e: React.FormEvent): void => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     const numAmount = parseFloat(amount);
 
@@ -63,23 +65,31 @@ export const RegisterExpense: React.FC = () => {
       return;
     }
 
-    // Agregar egreso al contexto financiero
-    addExpense({
-      amount: numAmount,
-      category,
-      description: description.trim() || `Gasto registrado en ${category}`,
-    });
+    setIsSubmitting(true);
 
-    // Guardar para feedback visual y limpiar campos
-    setLastRegisteredAmount(numAmount);
-    setShowSuccessToast(true);
-    setAmount('');
-    setDescription('');
+    try {
+      // Agregar egreso a Supabase
+      const ok = await addExpense({
+        amount: numAmount,
+        category,
+        description: description.trim() || `Gasto registrado en ${category}`,
+      });
 
-    // Ocultar mensaje de éxito tras 3.5 segundos
-    setTimeout(() => {
-      setShowSuccessToast(false);
-    }, 3500);
+      if (ok !== false) {
+        // Guardar para feedback visual y limpiar campos
+        setLastRegisteredAmount(numAmount);
+        setShowSuccessToast(true);
+        setAmount('');
+        setDescription('');
+
+        // Ocultar mensaje de éxito tras 3.5 segundos
+        setTimeout(() => {
+          setShowSuccessToast(false);
+        }, 3500);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -111,7 +121,7 @@ export const RegisterExpense: React.FC = () => {
               Registrar Nuevo Egreso / Gasto
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Registra compras, servicios o pagos de caja menor del día.
+              Registra compras, servicios o pagos de caja menor (guardado en Supabase).
             </p>
           </div>
         </div>
@@ -200,10 +210,11 @@ export const RegisterExpense: React.FC = () => {
           {/* Botón de Envío */}
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2"
+            disabled={isSubmitting}
+            className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-60"
           >
             <MinusCircle className="w-4 h-4" />
-            <span>Guardar Egreso</span>
+            <span>{isSubmitting ? 'Guardando en Supabase...' : 'Guardar Egreso'}</span>
           </button>
         </form>
       </div>

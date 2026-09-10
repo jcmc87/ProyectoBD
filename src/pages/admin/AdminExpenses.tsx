@@ -5,7 +5,8 @@ import {
   Edit2, 
   Trash2, 
   Plus, 
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 import { Expense, ExpenseInput, ExpenseCategory } from '../../types';
@@ -31,13 +32,13 @@ const formatDate = (dateStr: string): string => {
 
 /**
  * Vista de Gestión de Egresos para el Administrador (src/pages/admin/AdminExpenses.tsx).
- * - Tabla con todos los gastos y compras registrados en el sistema.
+ * - Tabla con todos los gastos y compras registrados en Supabase.
  * - Buscador en tiempo real por descripción, categoría o usuario y filtro por fecha.
  * - Modales completos para Editar y Registrar egresos.
  * - Eliminación de registros con confirmación de seguridad.
  */
 export const AdminExpenses: React.FC = () => {
-  const { expenses, addExpense, updateExpense, deleteExpense } = useFinance();
+  const { expenses, addExpense, updateExpense, deleteExpense, isLoading, refreshData } = useFinance();
 
   // Estados de búsqueda y filtros
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -46,6 +47,7 @@ export const AdminExpenses: React.FC = () => {
 
   // Estados del modal de edición/creación
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<ExpenseInput>({
     amount: 0,
@@ -98,29 +100,34 @@ export const AdminExpenses: React.FC = () => {
   };
 
   /**
-   * Guarda cambios o crea nuevo registro de gasto
+   * Guarda cambios o crea nuevo registro de gasto en Supabase
    */
-  const handleSave = (e: React.FormEvent): void => {
+  const handleSave = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (formData.amount <= 0 || !formData.description.trim()) {
       alert('Ingresa un monto válido y una descripción.');
       return;
     }
 
-    if (editingId) {
-      updateExpense(editingId, formData);
-    } else {
-      addExpense(formData);
+    setIsSaving(true);
+    try {
+      if (editingId) {
+        await updateExpense(editingId, formData);
+      } else {
+        await addExpense(formData);
+      }
+      setIsModalOpen(false);
+    } finally {
+      setIsSaving(false);
     }
-    setIsModalOpen(false);
   };
 
   /**
-   * Elimina un egreso con confirmación
+   * Elimina un egreso con confirmación en Supabase
    */
-  const handleDelete = (id: string): void => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este gasto permanentemente?')) {
-      deleteExpense(id);
+  const handleDelete = async (id: string): Promise<void> => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este gasto permanentemente en Supabase?')) {
+      await deleteExpense(id);
     }
   };
 
@@ -143,13 +150,24 @@ export const AdminExpenses: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={handleOpenCreate}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nuevo Egreso</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => refreshData()}
+            disabled={isLoading}
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition-colors text-xs font-semibold flex items-center space-x-1"
+            title="Sincronizar con Supabase"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            onClick={handleOpenCreate}
+            className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Egreso</span>
+          </button>
+        </div>
       </div>
 
       {/* Barra de Búsqueda y Filtros */}
@@ -220,7 +238,7 @@ export const AdminExpenses: React.FC = () => {
             {filteredExpenses.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-10 text-center text-slate-400 dark:text-slate-500 text-xs">
-                  No se encontraron egresos con los filtros seleccionados.
+                  {isLoading ? 'Cargando datos desde Supabase...' : 'No se encontraron egresos con los filtros seleccionados.'}
                 </td>
               </tr>
             ) : (
@@ -274,7 +292,7 @@ export const AdminExpenses: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                {editingId ? 'Editar Egreso' : 'Registrar Nuevo Egreso'}
+                {editingId ? 'Editar Egreso en Supabase' : 'Registrar Nuevo Egreso'}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -346,9 +364,10 @@ export const AdminExpenses: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors"
+                  disabled={isSaving}
+                  className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors disabled:opacity-60"
                 >
-                  {editingId ? 'Guardar Cambios' : 'Registrar'}
+                  {isSaving ? 'Guardando...' : editingId ? 'Guardar Cambios' : 'Registrar'}
                 </button>
               </div>
             </form>

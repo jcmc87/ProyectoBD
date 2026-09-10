@@ -1,47 +1,31 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole, AuthContextType, LoginResult } from '../types';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 /**
- * Estructura de credenciales simuladas para el entorno de pruebas
+ * Cuentas preconfiguradas de respaldo para pruebas visuales en caso de no contar aún con conexión a Supabase
  */
-export interface MockCredential {
-  user: User;
-  username: string;
-  password: string;
-}
-
-/**
- * Cuentas y credenciales predefinidas para Administrador y Usuario:
- * 
- * 1. ADMINISTRADOR:
- *    - Usuario / Correo: admin@control.com (o 'admin')
- *    - Contraseña:       admin123
- *    - Rol:              admin
- * 
- * 2. USUARIO ESTÁNDAR:
- *    - Usuario / Correo: usuario@control.com (o 'usuario' / 'carlos')
- *    - Contraseña:       user123
- *    - Rol:              usuario
- */
-export const MOCK_ACCOUNTS: MockCredential[] = [
+export const MOCK_ACCOUNTS = [
   {
     username: 'admin',
+    email: 'admin@control.com',
     password: 'admin123',
     user: {
-      id: 'usr-admin-001',
+      id: '00000000-0000-0000-0000-000000000001',
       email: 'admin@control.com',
       fullName: 'Ana Martínez (Admin)',
-      role: 'admin',
+      role: 'admin' as UserRole,
     },
   },
   {
     username: 'usuario',
+    email: 'usuario@control.com',
     password: 'user123',
     user: {
-      id: 'usr-standard-002',
+      id: '00000000-0000-0000-0000-000000000002',
       email: 'usuario@control.com',
       fullName: 'Carlos López (Cajero)',
-      role: 'usuario',
+      role: 'usuario' as UserRole,
     },
   },
 ];
@@ -53,67 +37,203 @@ interface AuthProviderProps {
 }
 
 /**
- * Proveedor de Autenticación en Memoria.
- * Gestiona el inicio de sesión por credenciales y roles.
+ * Proveedor de Autenticación integrado con Supabase Auth y la tabla public.profiles.
  */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // Inicializamos la sesión con el Administrador por comodidad durante el desarrollo
-  const [user, setUser] = useState<User | null>(MOCK_ACCOUNTS[0].user);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   /**
-   * Inicia sesión directa mediante el rol
-   * @param role - Rol 'admin' | 'usuario'
+   * Obtiene los datos del perfil del usuario autenticado desde la tabla public.profiles
+   * @param authUserId - UUID del usuario autenticado en auth.users
+   * @param email - Correo del usuario
    */
-  const login = (role: UserRole): void => {
-    const account = MOCK_ACCOUNTS.find((acc) => acc.user.role === role);
-    if (account) {
-      setUser(account.user);
+  const fetchUserProfile = async (authUserId: string, email: string): Promise<User> => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUserId)
+        .single();
+
+      if (error || !profile) {
+        console.warn('No se encontró fila en profiles o RLS restringió la consulta:', error?.message);
+        return {
+          id: authUserId,
+          email,
+          fullName: email.split('@')[0] || 'Usuario',
+          role: 'usuario',
+        };
+      }
+
+      return {
+        id: profile.id,
+        email,
+        fullName: profile.full_name || email.split('@')[0] || 'Usuario',
+        role: (profile.role as UserRole) || 'usuario',
+      };
+    } catch (err) {
+      console.error('Error al consultar profiles:', err);
+      return {
+        id: authUserId,
+        email,
+        fullName: 'Usuario',
+        role: 'usuario',
+      };
     }
   };
 
   /**
-   * Inicia sesión validando usuario/correo y contraseña
-   * @param identifier - Correo o nombre de usuario
-   * @param password - Contraseña ingresada
-   * @returns LoginResult ({ success: boolean, message?: string })
+   * Efecto para inicializar la sesión y escuchar cambios en tiempo real con onAuthStateChange()
    */
-  const loginWithCredentials = (identifier: string, password: string): LoginResult => {
+  useEffect(() => {
+    let isMounted = true;
+
+    const initializeSession = async () => {
+      try {
+        if (!isSupabaseConfigured) {
+          // Si no está configurado Supabase, inicializar con cuenta demo por defecto
+          if (isMounted) {
+            setUser(MOCK_ACCOUNTS[0].user);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // 1. Obtener la sesión activa actual de Supabase
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        if (session?.user) {
+          const userProfile = await fetchUserProfile(session.user.id, session.user.email || '');
+          if (isMounted) setUser(userProfile);
+        } else {
+          if (isMounted) setUser(null);
+        }
+      } catch (err) {
+        console.error('Error al inicializar sesión:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    initializeSession();
+
+    // 2. Suscribirse a eventos de autenticación (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const userProfile = await fetchUserProfile(session.user.id, session.user.email || '');
+        if (isMounted) setUser(userProfile);
+      } else {
+        if (isMounted) setUser(null);
+      }
+      if (isMounted) setLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  /**
+   * Inicia sesión con correo electrónico y contraseña mediante supabase.auth.signInWithPassword()
+   * @param identifier - Correo electrónico o nombre de usuario
+   * @param password - Contraseña
+   * @returns Promise<LoginResult>
+   */
+  const loginWithCredentials = async (identifier: string, password: string): Promise<LoginResult> => {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = password.trim();
 
     if (!cleanId || !cleanPass) {
       return {
         success: false,
-        message: 'Por favor completa todos los campos.',
+        message: 'Por favor, ingresa el correo y la contraseña.',
       };
     }
 
-    // Busca coincidencia en correo o nombre de usuario
+    // Convertir usuario plano a email si ingresó solo 'admin' o 'usuario'
+    const emailToUse = cleanId.includes('@')
+      ? cleanId
+      : cleanId === 'admin'
+      ? 'admin@control.com'
+      : cleanId === 'usuario'
+      ? 'usuario@control.com'
+      : `${cleanId}@control.com`;
+
+    // Si Supabase está configurado, autenticar contra Supabase Auth
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailToUse,
+          password: cleanPass,
+        });
+
+        if (error) {
+          return {
+            success: false,
+            message: error.message === 'Invalid login credentials'
+              ? 'Correo o contraseña incorrectos en Supabase.'
+              : error.message,
+          };
+        }
+
+        if (data.user) {
+          const userProfile = await fetchUserProfile(data.user.id, data.user.email || emailToUse);
+          setUser(userProfile);
+          return { success: true };
+        }
+      } catch (err: any) {
+        return {
+          success: false,
+          message: err.message || 'Error de conexión con Supabase.',
+        };
+      }
+    }
+
+    // Fallback para modo offline / pruebas visuales si Supabase aún no tiene credenciales en .env
     const account = MOCK_ACCOUNTS.find(
       (acc) =>
-        (acc.username.toLowerCase() === cleanId || acc.user.email.toLowerCase() === cleanId) &&
+        (acc.username.toLowerCase() === cleanId || acc.email.toLowerCase() === emailToUse) &&
         acc.password === cleanPass
     );
 
-    if (!account) {
-      return {
-        success: false,
-        message: 'Correo/Usuario o contraseña incorrectos.',
-      };
+    if (account) {
+      setUser(account.user);
+      return { success: true };
     }
 
-    // Credenciales correctas: establecer usuario
-    setUser(account.user);
     return {
-      success: true,
+      success: false,
+      message: 'Credenciales inválidas. (Modo pruebas: admin@control.com/admin123 o usuario@control.com/user123)',
     };
   };
 
   /**
-   * Cierra la sesión activa actual
+   * Cierra la sesión activa mediante supabase.auth.signOut()
    */
-  const logout = (): void => {
-    setUser(null);
+  const logout = async (): Promise<void> => {
+    try {
+      if (isSupabaseConfigured) {
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+    } finally {
+      setUser(null);
+    }
+  };
+
+  /**
+   * Conmuta o establece directamente el rol de usuario para pruebas rápidas
+   * @param role - 'admin' | 'usuario'
+   */
+  const login = (role: UserRole): void => {
+    const account = MOCK_ACCOUNTS.find((acc) => acc.user.role === role);
+    if (account) {
+      setUser(account.user);
+    }
   };
 
   const isAuthenticated = user !== null;
@@ -125,6 +245,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user,
         isAuthenticated,
         isAdmin,
+        loading,
         login,
         loginWithCredentials,
         logout,
@@ -136,7 +257,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 };
 
 /**
- * Hook de acceso al contexto de autenticación
+ * Hook para acceder al contexto de autenticación
  */
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);

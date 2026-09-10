@@ -12,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
  * - Botón de cierre de sesión.
  */
 export const BarraNavegacion: React.FC = () => {
-  const { user, isAdmin, login, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -22,13 +22,6 @@ export const BarraNavegacion: React.FC = () => {
   const handleLogout = (): void => {
     logout();
     navigate('/login');
-  };
-
-  /**
-   * Alterna el rol de prueba entre 'admin' y 'usuario' para verificar permisos inmediatamente.
-   */
-  const handleToggleRole = (): void => {
-    login(isAdmin ? 'usuario' : 'admin');
   };
 
   return (
@@ -112,14 +105,10 @@ export const BarraNavegacion: React.FC = () => {
             )}
           </button>
 
-          {/* Switch de rol para pruebas */}
-          <button
-            onClick={handleToggleRole}
-            className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 transition-colors"
-            title="Haz clic para cambiar el rol y probar permisos"
-          >
-            Rol: <strong className="capitalize text-slate-900 dark:text-white">{user?.role}</strong> (cambiar)
-          </button>
+          {/* Badge de rol del usuario */}
+          <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">
+            Rol: <strong className="capitalize text-slate-900 dark:text-white">{user?.role || 'usuario'}</strong>
+          </span>
 
           {/* Botón de cierre de sesión */}
           <button

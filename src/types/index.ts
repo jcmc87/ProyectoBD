@@ -125,6 +125,7 @@ export type ExpenseInput = Omit<Expense, 'id' | 'createdBy' | 'createdAt' | 'use
 export interface LoginResult {
   success: boolean;
   message?: string;
+  user?: User;
 }
 
 /**

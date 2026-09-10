@@ -2,34 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, UserRole, AuthContextType, LoginResult } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
-/**
- * Cuentas preconfiguradas de respaldo para pruebas visuales en caso de no contar aún con conexión a Supabase
- */
-export const MOCK_ACCOUNTS = [
-  {
-    username: 'admin',
-    email: 'admin@control.com',
-    password: 'admin123',
-    user: {
-      id: '00000000-0000-0000-0000-000000000001',
-      email: 'admin@control.com',
-      fullName: 'Ana Martínez (Admin)',
-      role: 'admin' as UserRole,
-    },
-  },
-  {
-    username: 'usuario',
-    email: 'usuario@control.com',
-    password: 'user123',
-    user: {
-      id: '00000000-0000-0000-0000-000000000002',
-      email: 'usuario@control.com',
-      fullName: 'Carlos López (Cajero)',
-      role: 'usuario' as UserRole,
-    },
-  },
-];
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
@@ -37,14 +9,17 @@ interface AuthProviderProps {
 }
 
 /**
- * Proveedor de Autenticación integrado con Supabase Auth y la tabla public.profiles.
+ * Proveedor de Autenticación conectado 100% a la base de datos de Supabase.
+ * - Autentica credenciales vía Supabase Auth (auth.users).
+ * - Consulta el rol y nombre completo directamente desde la tabla public.profiles.
+ * - Sincroniza la sesión en tiempo real mediante onAuthStateChange().
  */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   /**
-   * Obtiene los datos del perfil del usuario autenticado desde la tabla public.profiles
+   * Obtiene los datos del perfil del usuario autenticado desde la tabla public.profiles en Supabase
    * @param authUserId - UUID del usuario autenticado en auth.users
    * @param email - Correo del usuario
    */
@@ -57,7 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single();
 
       if (error || !profile) {
-        console.warn('No se encontró fila en profiles o RLS restringió la consulta:', error?.message);
+        console.warn('Perfil no encontrado en public.profiles o restringido por RLS:', error?.message);
         return {
           id: authUserId,
           email,
@@ -73,18 +48,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role: (profile.role as UserRole) || 'usuario',
       };
     } catch (err) {
-      console.error('Error al consultar profiles:', err);
+      console.error('Error al consultar tabla profiles:', err);
       return {
         id: authUserId,
         email,
-        fullName: 'Usuario',
+        fullName: email.split('@')[0] || 'Usuario',
         role: 'usuario',
       };
     }
   };
 
   /**
-   * Efecto para inicializar la sesión y escuchar cambios en tiempo real con onAuthStateChange()
+   * Efecto para inicializar la sesión activa y suscribirse a cambios de autenticación
    */
   useEffect(() => {
     let isMounted = true;
@@ -92,15 +67,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeSession = async () => {
       try {
         if (!isSupabaseConfigured) {
-          // Si no está configurado Supabase, inicializar con cuenta demo por defecto
           if (isMounted) {
-            setUser(MOCK_ACCOUNTS[0].user);
+            setUser(null);
             setLoading(false);
           }
           return;
         }
 
-        // 1. Obtener la sesión activa actual de Supabase
+        // 1. Obtener la sesión activa de Supabase
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
 
@@ -112,6 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (err) {
         console.error('Error al inicializar sesión:', err);
+        if (isMounted) setUser(null);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -119,7 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     initializeSession();
 
-    // 2. Suscribirse a eventos de autenticación (login, logout, token refresh)
+    // 2. Suscribirse a eventos de autenticación de Supabase (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const userProfile = await fetchUserProfile(session.user.id, session.user.email || '');
@@ -137,81 +112,64 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   /**
-   * Inicia sesión con correo electrónico y contraseña mediante supabase.auth.signInWithPassword()
-   * @param identifier - Correo electrónico o nombre de usuario
-   * @param password - Contraseña
+   * Inicia sesión con correo electrónico y contraseña contra Supabase Auth
+   * @param email - Correo electrónico registrado en la base de datos
+   * @param password - Contraseña del usuario
    * @returns Promise<LoginResult>
    */
-  const loginWithCredentials = async (identifier: string, password: string): Promise<LoginResult> => {
-    const cleanId = identifier.trim().toLowerCase();
+  const loginWithCredentials = async (email: string, password: string): Promise<LoginResult> => {
+    const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    if (!cleanId || !cleanPass) {
+    if (!cleanEmail || !cleanPass) {
       return {
         success: false,
         message: 'Por favor, ingresa el correo y la contraseña.',
       };
     }
 
-    // Convertir usuario plano a email si ingresó solo 'admin' o 'usuario'
-    const emailToUse = cleanId.includes('@')
-      ? cleanId
-      : cleanId === 'admin'
-      ? 'admin@control.com'
-      : cleanId === 'usuario'
-      ? 'usuario@control.com'
-      : `${cleanId}@control.com`;
+    if (!isSupabaseConfigured) {
+      return {
+        success: false,
+        message: 'Supabase no está configurado. Verifica las variables VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.',
+      };
+    }
 
-    // Si Supabase está configurado, autenticar contra Supabase Auth
-    if (isSupabaseConfigured) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: emailToUse,
-          password: cleanPass,
-        });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: cleanPass,
+      });
 
-        if (error) {
-          return {
-            success: false,
-            message: error.message === 'Invalid login credentials'
-              ? 'Correo o contraseña incorrectos en Supabase.'
-              : error.message,
-          };
-        }
-
-        if (data.user) {
-          const userProfile = await fetchUserProfile(data.user.id, data.user.email || emailToUse);
-          setUser(userProfile);
-          return { success: true };
-        }
-      } catch (err: any) {
+      if (error) {
         return {
           success: false,
-          message: err.message || 'Error de conexión con Supabase.',
+          message: error.message === 'Invalid login credentials'
+            ? 'Correo o contraseña incorrectos.'
+            : error.message,
         };
       }
+
+      if (data.user) {
+        const userProfile = await fetchUserProfile(data.user.id, data.user.email || cleanEmail);
+        setUser(userProfile);
+        return { success: true, user: userProfile };
+      }
+
+      return {
+        success: false,
+        message: 'No se pudo iniciar sesión. Verifica tus credenciales.',
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err.message || 'Error de conexión con el servidor de autenticación.',
+      };
     }
-
-    // Fallback para modo offline / pruebas visuales si Supabase aún no tiene credenciales en .env
-    const account = MOCK_ACCOUNTS.find(
-      (acc) =>
-        (acc.username.toLowerCase() === cleanId || acc.email.toLowerCase() === emailToUse) &&
-        acc.password === cleanPass
-    );
-
-    if (account) {
-      setUser(account.user);
-      return { success: true };
-    }
-
-    return {
-      success: false,
-      message: 'Credenciales inválidas. (Modo pruebas: admin@control.com/admin123 o usuario@control.com/user123)',
-    };
   };
 
   /**
-   * Cierra la sesión activa mediante supabase.auth.signOut()
+   * Cierra la sesión activa en Supabase y limpia el estado local
    */
   const logout = async (): Promise<void> => {
     try {
@@ -226,14 +184,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   /**
-   * Conmuta o establece directamente el rol de usuario para pruebas rápidas
-   * @param role - 'admin' | 'usuario'
+   * Función de compatibilidad (deshabilitada para roles manuales ya que provienen de la BD)
    */
-  const login = (role: UserRole): void => {
-    const account = MOCK_ACCOUNTS.find((acc) => acc.user.role === role);
-    if (account) {
-      setUser(account.user);
-    }
+  const login = (_role: UserRole): void => {
+    console.warn('El cambio manual de rol está deshabilitado. La autenticación se realiza exclusivamente contra la base de datos.');
   };
 
   const isAuthenticated = user !== null;

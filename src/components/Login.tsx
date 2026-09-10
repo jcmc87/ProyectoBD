@@ -46,7 +46,7 @@ export const Login: React.FC = () => {
       setIsLoading(false);
 
       if (result.success) {
-        const isUserAdmin = identifier.toLowerCase().includes('admin');
+        const isUserAdmin = result.user?.role === 'admin';
         navigate(isUserAdmin ? '/admin/dashboard' : '/user/income');
       } else {
         setErrorMessage(result.message || 'Credenciales inválidas.');
@@ -123,7 +123,7 @@ export const Login: React.FC = () => {
                     setIdentifier(e.target.value);
                     if (errorMessage) setErrorMessage(null);
                   }}
-                  placeholder="ejemplo@control.com"
+                  placeholder="ejemplo@correo.com"
                   className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-100/10 focus:border-slate-800 dark:focus:border-slate-600 transition-all"
                 />
               </div>

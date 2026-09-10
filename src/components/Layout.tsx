@@ -27,7 +27,7 @@ import { useTheme } from '../context/ThemeContext';
  * - Botón para cerrar sesión y selector de tema visual (Sol / Luna).
  */
 export const Layout: React.FC = () => {
-  const { user, isAdmin, login, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -37,15 +37,6 @@ export const Layout: React.FC = () => {
   const handleLogout = (): void => {
     logout();
     navigate('/login');
-  };
-
-  /**
-   * Conmuta rápidamente entre rol de Admin y Usuario para pruebas visuales inmediatas.
-   */
-  const handleToggleRole = (): void => {
-    const nextRole = isAdmin ? 'usuario' : 'admin';
-    login(nextRole);
-    navigate(nextRole === 'admin' ? '/admin/dashboard' : '/user/income');
   };
 
   return (
@@ -186,13 +177,11 @@ export const Layout: React.FC = () => {
                 <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
                   {user?.fullName || 'Usuario'}
                 </p>
-                <button
-                  onClick={handleToggleRole}
-                  className="text-[10px] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline"
-                  title="Cambiar rol para probar permisos"
-                >
-                  Cambiar rol
-                </button>
+                {user?.email && (
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
+                    {user.email}
+                  </p>
+                )}
               </div>
 
               <span

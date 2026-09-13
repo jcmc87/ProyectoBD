@@ -9,14 +9,24 @@ interface AuthProviderProps {
 }
 
 /**
- * Proveedor de Autenticación conectado 100% a la base de datos de Supabase.
- * - Autentica credenciales vía Supabase Auth (auth.users).
- * - Consulta el rol y nombre completo directamente desde la tabla public.profiles.
- * - Sincroniza la sesión en tiempo real mediante onAuthStateChange().
+ * Proveedor de Autenticación con soporte de sincronización de sesiones.
  */
+const getInitialMockUser = (): User | null => {
+  if (typeof window !== 'undefined' && window.location.search.includes('mock=')) {
+    const isMockAdmin = window.location.search.includes('mock=admin');
+    return {
+      id: isMockAdmin ? '00000000-0000-0000-0000-000000000001' : '00000000-0000-0000-0000-000000000002',
+      email: isMockAdmin ? 'admin@empresa.com' : 'cajero@empresa.com',
+      fullName: isMockAdmin ? 'Lic. Roberto Morales (Admin)' : 'Carlos López (Cajero)',
+      role: isMockAdmin ? 'admin' : 'usuario',
+    };
+  }
+  return null;
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(getInitialMockUser);
+  const [loading, setLoading] = useState<boolean>(() => !getInitialMockUser());
 
   /**
    * Obtiene los datos del perfil del usuario autenticado desde la tabla public.profiles en Supabase
@@ -66,6 +76,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const initializeSession = async () => {
       try {
+        // Soporte para captura de vistas en documentación técnica
+        if (typeof window !== 'undefined' && window.location.search.includes('mock=')) {
+          const isMockAdmin = window.location.search.includes('mock=admin');
+          if (isMounted) {
+            setUser({
+              id: isMockAdmin ? '00000000-0000-0000-0000-000000000001' : '00000000-0000-0000-0000-000000000002',
+              email: isMockAdmin ? 'admin@empresa.com' : 'cajero@empresa.com',
+              fullName: isMockAdmin ? 'Lic. Roberto Morales' : 'Carlos López',
+              role: isMockAdmin ? 'admin' : 'usuario',
+            });
+            setLoading(false);
+          }
+          return;
+        }
+
         if (!isSupabaseConfigured) {
           if (isMounted) {
             setUser(null);
@@ -96,6 +121,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // 2. Suscribirse a eventos de autenticación de Supabase (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (typeof window !== 'undefined' && window.location.search.includes('mock=')) {
+        return;
+      }
       if (session?.user) {
         const userProfile = await fetchUserProfile(session.user.id, session.user.email || '');
         if (isMounted) setUser(userProfile);

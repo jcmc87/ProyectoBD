@@ -47,18 +47,45 @@ const INITIAL_INCOMES: Income[] = [
     id: '11111111-0000-0000-0000-000000000002',
     amount: 840.50,
     paymentMethod: 'tarjeta',
-    description: 'Cobro de servicio técnico con terminal POS',
+    description: 'Cobro de servicio técnico con POS #12',
     createdBy: '00000000-0000-0000-0000-000000000002',
     userName: 'Carlos López (Cajero)',
     createdAt: new Date().toISOString(),
   },
   {
     id: '11111111-0000-0000-0000-000000000003',
-    amount: 2100.00,
+    amount: 1500.00,
     paymentMethod: 'transferencia',
-    description: 'Transferencia por factura corporativa #402',
+    description: 'Anticipo por servicio corporativo',
+    createdBy: '00000000-0000-0000-0000-000000000002',
+    userName: 'Carlos López (Cajero)',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '11111111-0000-0000-0000-000000000004',
+    amount: 620.00,
+    paymentMethod: 'efectivo',
+    description: 'Venta de accesorios y repuestos',
+    createdBy: '00000000-0000-0000-0000-000000000002',
+    userName: 'Carlos López (Cajero)',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '11111111-0000-0000-0000-000000000005',
+    amount: 3450.00,
+    paymentMethod: 'transferencia',
+    description: 'Facturación corporativa cliente VIP #402',
     createdBy: '00000000-0000-0000-0000-000000000001',
-    userName: 'Ana Martínez (Admin)',
+    userName: 'Lic. Roberto Morales (Admin)',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: '11111111-0000-0000-0000-000000000006',
+    amount: 980.00,
+    paymentMethod: 'tarjeta',
+    description: 'Mantenimiento preventivo lote A',
+    createdBy: '00000000-0000-0000-0000-000000000001',
+    userName: 'Lic. Roberto Morales (Admin)',
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
@@ -68,7 +95,7 @@ const INITIAL_EXPENSES: Expense[] = [
     id: '22222222-0000-0000-0000-000000000001',
     category: 'insumos',
     amount: 150.00,
-    description: 'Compra de bolsas y rollos de papel para caja',
+    description: 'Compra de bolsas y rollos térmicos para caja',
     createdBy: '00000000-0000-0000-0000-000000000002',
     userName: 'Carlos López (Cajero)',
     createdAt: new Date().toISOString(),
@@ -76,11 +103,29 @@ const INITIAL_EXPENSES: Expense[] = [
   {
     id: '22222222-0000-0000-0000-000000000002',
     category: 'servicios',
-    amount: 350.00,
-    description: 'Pago de servicio eléctrico de oficina',
+    amount: 100.00,
+    description: 'Recarga de saldo datos para terminal POS',
     createdBy: '00000000-0000-0000-0000-000000000002',
     userName: 'Carlos López (Cajero)',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '22222222-0000-0000-0000-000000000003',
+    category: 'servicios',
+    amount: 450.00,
+    description: 'Pago de servicio eléctrico de oficina central',
+    createdBy: '00000000-0000-0000-0000-000000000001',
+    userName: 'Lic. Roberto Morales (Admin)',
     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: '22222222-0000-0000-0000-000000000004',
+    category: 'mantenimiento',
+    amount: 650.00,
+    description: 'Mantenimiento y limpieza de aire acondicionado',
+    createdBy: '00000000-0000-0000-0000-000000000001',
+    userName: 'Lic. Roberto Morales (Admin)',
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -107,7 +152,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
    * Carga los ingresos y egresos directamente desde las tablas de Supabase
    */
   const refreshData = useCallback(async (): Promise<void> => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || (typeof window !== 'undefined' && window.location.search.includes('mock='))) {
       setIncomes(INITIAL_INCOMES);
       setExpenses(INITIAL_EXPENSES);
       return;

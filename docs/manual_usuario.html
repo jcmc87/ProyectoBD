@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Manual de Usuario - Sistema de Control Financiero</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 14mm 14mm 16mm 14mm;
+      @bottom-right {
+        content: "Página " counter(page);
+        font-family: 'Inter', sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+        font-weight: 600;
+      }
+      @bottom-left {
+        content: "Sistema de Control Financiero — Manual de Usuario v1.0";
+        font-family: 'Inter', sans-serif;
+        font-size: 7.5pt;
+        color: #94a3b8;
+      }
+    }
+
+    @page :first {
+      margin: 0;
+      @bottom-right { content: none; }
+      @bottom-left { content: none; }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      line-height: 1.45;
+      font-size: 8.8pt;
+      background-color: #ffffff;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .page {
+      width: 100%;
+      height: 266mm;
+      page-break-after: always;
+      break-after: page;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    /* ==========================================================================
+       PÁGINA 1: PORTADA
+       ========================================================================== */
+    .cover-page {
+      width: 100%;
+      height: 297mm;
+      padding: 38mm 24mm 28mm 24mm;
+      background: linear-gradient(145deg, #090d16 0%, #0f172a 45%, #1e1b4b 100%);
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    .cover-page::before {
+      content: "";
+      position: absolute;
+      top: -120px;
+      right: -120px;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.28) 0%, rgba(99, 102, 241, 0) 70%);
+      border-radius: 50%;
+    }
+
+    .cover-page::after {
+      content: "";
+      position: absolute;
+      bottom: -150px;
+      left: -100px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0) 70%);
+      border-radius: 50%;
+    }
+
+    .cover-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #818cf8;
+      width: fit-content;
+    }
+
+    .cover-header { z-index: 10; }
+
+    .cover-title {
+      font-size: 34pt;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.025em;
+      margin-top: 18px;
+      margin-bottom: 10px;
+      background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .cover-subtitle {
+      font-size: 12.5pt;
+      color: #94a3b8;
+      font-weight: 400;
+      max-width: 540px;
+      line-height: 1.45;
+    }
+
+    .cover-meta {
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 20px 24px;
+      backdrop-filter: blur(12px);
+    }
+
+    .cover-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .meta-item h4 {
+      font-size: 7pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 3px;
+    }
+
+    .meta-item p {
+      font-size: 9.5pt;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .cover-footer {
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      padding-top: 14px;
+      font-size: 8pt;
+      color: #64748b;
+    }
+
+    .cover-footer span strong { color: #10b981; }
+
+    /* ==========================================================================
+       TITULOS Y CONTENIDO
+       ========================================================================== */
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+
+    h1 {
+      font-size: 15pt;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h1 .section-num {
+      background: #4f46e5;
+      color: #ffffff;
+      font-size: 9pt;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    h2 {
+      font-size: 11pt;
+      margin-top: 12px;
+      margin-bottom: 6px;
+      color: #1e293b;
+      border-left: 3px solid #4f46e5;
+      padding-left: 8px;
+    }
+
+    h3 {
+      font-size: 9.5pt;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      color: #334155;
+    }
+
+    p {
+      margin-bottom: 8px;
+      color: #334155;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-left: 16px;
+      margin-bottom: 8px;
+      color: #334155;
+    }
+
+    li { margin-bottom: 3px; }
+
+    strong {
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       TABLA DE CONTENIDO (ÍNDICE)
+       ========================================================================== */
+    .toc-container {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 8px 0;
+    }
+
+    .toc-title {
+      font-size: 11.5pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 5px;
+    }
+
+    .toc-list {
+      list-style: none;
+      margin-left: 0;
+      margin-bottom: 0;
+    }
+
+    .toc-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 3.5px 0;
+      border-bottom: 1px dashed #e2e8f0;
+      font-size: 8.2pt;
+    }
+
+    .toc-item:last-child { border-bottom: none; }
+    .toc-item.main-item {
+      padding-top: 5px;
+      font-weight: 700;
+    }
+    .toc-item .title { color: #0f172a; }
+    .toc-item .sub {
+      padding-left: 14px;
+      font-weight: 400;
+      color: #475569;
+    }
+    .toc-item .dots {
+      flex: 1;
+      border-bottom: 1px dotted #cbd5e1;
+      margin: 0 6px;
+      height: 1px;
+    }
+    .toc-item .page-badge {
+      font-weight: 700;
+      color: #4f46e5;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.8pt;
+    }
+
+    /* ==========================================================================
+       TABLAS
+       ========================================================================== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 10px 0;
+      font-size: 8pt;
+      background: #ffffff;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+
+    th, td {
+      padding: 6px 9px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 6.8pt;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    tr:nth-child(even) td { background-color: #f8fafc; }
+    td { border-bottom: 1px solid #f1f5f9; color: #334155; }
+
+    /* ==========================================================================
+       CAJAS DE ALERTA
+       ========================================================================== */
+    .callout {
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin: 8px 0;
+      font-size: 8.2pt;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      border: 1px solid transparent;
+    }
+
+    .callout-icon {
+      font-size: 11pt;
+      line-height: 1;
+      margin-top: 1px;
+    }
+
+    .callout-content { flex: 1; }
+    .callout-title {
+      font-weight: 700;
+      margin-bottom: 2px;
+      font-size: 8.2pt;
+    }
+
+    .callout-tip {
+      background-color: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+    .callout-tip .callout-title { color: #15803d; }
+
+    .callout-info {
+      background-color: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1e40af;
+    }
+    .callout-info .callout-title { color: #1d4ed8; }
+
+    .callout-warning {
+      background-color: #fffbeb;
+      border-color: #fde68a;
+      color: #92400e;
+    }
+    .callout-warning .callout-title { color: #b45309; }
+
+    /* ==========================================================================
+       IMÁGENES Y CAPTURAS
+       ========================================================================== */
+    .figure-box {
+      margin: 8px 0 10px 0;
+      border: 1px solid #0f172a;
+      border-radius: 6px;
+      background: #0b1120;
+      padding: 5px;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+
+    .figure-box img {
+      width: 100%;
+      max-height: 85mm;
+      object-fit: contain;
+      border-radius: 4px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .figure-caption {
+      text-align: center;
+      font-size: 7.8pt;
+      color: #94a3b8;
+      margin-top: 4px;
+      padding: 2px 4px;
+      font-style: italic;
+    }
+
+    .figure-caption strong {
+      color: #f1f5f9;
+      font-style: normal;
+    }
+
+    /* ==========================================================================
+       PASOS Y PROCEDIMIENTOS
+       ========================================================================== */
+    .step-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      margin-bottom: 8px;
+      border-left: 3px solid #4f46e5;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .step-number {
+      background: #4f46e5;
+      color: #ffffff;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7.5pt;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-size: 8.8pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .step-card ol {
+      margin-left: 14px;
+      margin-bottom: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 6.8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-admin {
+      background-color: #f3e8ff;
+      color: #7e22ce;
+      border: 1px solid #e9d5ff;
+    }
+
+    .badge-user {
+      background-color: #dbeafe;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       PÁGINA 1: PORTADA
+       ======================================================================== -->
+  <div class="cover-page">
+    <div class="cover-header">
+      <div class="cover-badge">
+        <span>●</span> Documentación Oficial del Sistema
+      </div>
+      <h1 class="cover-title">MANUAL DE USUARIO</h1>
+      <p class="cover-subtitle">
+        Guía integral de operación, procedimientos de caja y gestión administrativa para el Sistema de Control Financiero.
+      </p>
+    </div>
+
+    <div class="cover-meta">
+      <div class="cover-grid">
+        <div class="meta-item">
+          <h4>Nombre del Proyecto</h4>
+          <p>Control Financiero & Cuadre de Caja</p>
+        </div>
+        <div class="meta-item">
+          <h4>Versión del Sistema</h4>
+          <p>v1.0.0 (Producción)</p>
+        </div>
+        <div class="meta-item">
+          <h4>Plataforma Desplegada</h4>
+          <p>Vercel Edge Cloud Platform</p>
+        </div>
+        <div class="meta-item">
+          <h4>Motor de Base de Datos</h4>
+          <p>Supabase PostgreSQL (RLS Activo)</p>
+        </div>
+        <div class="meta-item">
+          <h4>Audiencia Objetivo</h4>
+          <p>Operadores de Caja, Cajeros y Administradores</p>
+        </div>
+        <div class="meta-item">
+          <h4>Fecha de Publicación</h4>
+          <p>Septiembre 2026</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <div>Acceso Web: <strong>https://proyecto-bd-eight.vercel.app</strong></div>
+      <div>Sistema de Control Financiero © 2026</div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 2: ÍNDICE DE CONTENIDO (EXACTAMENTE 1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h1><span class="section-num">ÍNDICE</span> Estructura del Manual de Usuario</h1>
+    
+    <div class="toc-container">
+      <div class="toc-title">📖 Contenido General del Documento</div>
+      <ul class="toc-list">
+        <li class="toc-item main-item">
+          <span class="title">1. Introducción al Sistema</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 3</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">1.1 Propósito y Alcance de la Plataforma</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 3</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">1.2 Arquitectura en la Nube y Seguridad RLS</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 3</span>
+        </li>
+
+        <li class="toc-item main-item">
+          <span class="title">2. Objetivo del Sistema</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 3</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">2.1 Objetivo General y Objetivos Específicos</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 3</span>
+        </li>
+
+        <li class="toc-item main-item">
+          <span class="title">3. Requisitos de Uso del Sistema</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 3</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">3.1 Requisitos de Hardware, Conectividad y Software</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 3</span>
+        </li>
+
+        <li class="toc-item main-item">
+          <span class="title">4. Instrucciones de Acceso y Autenticación</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 4</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">4.1 URL Oficial e Inicio de Sesión (Login)</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 4</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">4.2 Matriz de Roles y Privilegios (Usuario vs. Admin)</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 4</span>
+        </li>
+
+        <li class="toc-item main-item">
+          <span class="title">5. Descripción de Módulos y Funcionalidades</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 5</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">5.1 Módulo del Operador: Registro de Ingresos</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 5</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">5.2 Módulo del Operador: Registro de Egresos</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 6</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">5.3 Módulo del Operador: Historial y Cuadre de Caja Diario</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 7</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">5.4 Módulo del Administrador: Dashboard Gerencial</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 8</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">5.5 Módulo del Administrador: Gestión Global de Ingresos</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 9</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">5.6 Módulo del Administrador: Gestión Global de Egresos</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 10</span>
+        </li>
+
+        <li class="toc-item main-item">
+          <span class="title">6. Procedimientos Básicos de Operación (Paso a Paso)</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 11</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">P-01: Iniciar Sesión en la Plataforma</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 11</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">P-02: Registrar una Venta o Ingreso</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 11</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">P-03: Registrar un Gasto Operativo de Caja Chica</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 11</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">P-04: Ejecutar el Cuadre y Arqueo al Cierre de Turno</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 12</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">P-05: Filtrar y Analizar Métricas en el Dashboard Gerencial</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 12</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">P-06: Auditar quién registró un movimiento (Auditoría Admin)</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 12</span>
+        </li>
+        <li class="toc-item">
+          <span class="sub">P-07: Cierre Seguro de Sesión</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 12</span>
+        </li>
+
+        <li class="toc-item main-item">
+          <span class="title">7. Preguntas Frecuentes y Soporte Técnico</span>
+          <span class="dots"></span>
+          <span class="page-badge">Pág. 13</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="callout callout-info" style="margin-top: 10px;">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <div class="callout-title">Uso y Recomendación de este Manual</div>
+        Este documento está diseñado con capturas de alta resolución tomadas directamente del entorno de producción. Se recomienda a todo nuevo colaborador de caja o administración consultar las secciones 4, 5 y 6 antes de iniciar operaciones en su turno.
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 3: INTRODUCCIÓN, OBJETIVOS Y REQUISITOS (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h1><span class="section-num">01</span> Introducción al Sistema</h1>
+    <p>
+      El <strong>Sistema de Control Financiero y Cuadre de Caja</strong> es una plataforma web moderna desarrollada para centralizar, controlar y auditar con precisión matemática los flujos de dinero en organizaciones comerciales y puntos de venta.
+    </p>
+    <p>
+      En el comercio diario, la recepción de múltiples modalidades de pago (efectivo físico, tarjetas de crédito/débito y transferencias bancarias) suele causar descuadres en caja, pérdida de comprobantes y demoras en el cierre de turno. Este sistema resuelve integralmente esta problemática: brinda al cajero un entorno rápido para registrar cobros y gastos, y otorga a la gerencia un panel de auditoría en tiempo real con trazabilidad de cada centavo.
+    </p>
+
+    <h1><span class="section-num">02</span> Objetivo del Sistema</h1>
+    <p>
+      <strong>Objetivo General:</strong> Proveer una plataforma web robusta, accesible e intuitiva que permita registrar, clasificar y auditar en tiempo real los ingresos y egresos de caja, garantizando la cuadratura física de valores al cierre de turno y proporcionando reportes analíticos para la toma de decisiones empresariales.
+    </p>
+    <p><strong>Objetivos Específicos:</strong></p>
+    <ul>
+      <li><strong>Control por Método de Pago:</strong> Registrar ingresos clasificados en Efectivo, Tarjetas (Terminal POS) y Transferencias bancarias.</li>
+      <li><strong>Categorización de Gastos:</strong> Registrar egresos de caja menor tipificados en Servicios, Insumos, Salarios, Mantenimiento y Otros.</li>
+      <li><strong>Arqueo Diario Automático:</strong> Calcular en tiempo real el balance neto de la jornada y el efectivo que debe existir físicamente en gaveta.</li>
+      <li><strong>Trazabilidad y Auditoría:</strong> Vincular cada transacción al usuario autenticado (columna <code>created_by</code>), permitiendo a los administradores saber quién cobró o gastó cada monto.</li>
+    </ul>
+
+    <h1><span class="section-num">03</span> Requisitos de Uso</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Componente</th>
+          <th>Requisito Mínimo</th>
+          <th>Requisito Recomendado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Dispositivo</strong></td>
+          <td>PC, Laptop, Tablet o Móvil (min. 360x640 px)</td>
+          <td>Computadora de escritorio o laptop 1920x1080 px</td>
+        </tr>
+        <tr>
+          <td><strong>Memoria RAM</strong></td>
+          <td>2 GB de memoria RAM</td>
+          <td>4 GB de memoria RAM o superior</td>
+        </tr>
+        <tr>
+          <td><strong>Conexión a Red</strong></td>
+          <td>Internet 3G / 4G / WiFi de 1 Mbps</td>
+          <td>Conexión banda ancha cableada o WiFi estable 5 Mbps+</td>
+        </tr>
+        <tr>
+          <td><strong>Navegadores</strong></td>
+          <td colspan="2">Google Chrome (v90+), Microsoft Edge (v90+), Mozilla Firefox (v88+) o Safari (v14+). No requiere software local.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 4: ACCESO Y AUTENTICACIÓN (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h1><span class="section-num">04</span> Instrucciones de Acceso y Autenticación</h1>
+
+    <p style="margin-bottom: 6px;">
+      Para ingresar al sistema desde cualquier dispositivo autorizado, abra su navegador e ingrese a la URL oficial:
+      <strong><code>https://proyecto-bd-eight.vercel.app</code></strong>.
+    </p>
+
+    <div class="figure-box">
+      <img src="screenshots/01_login.png" alt="Pantalla de Inicio de Sesión">
+      <div class="figure-caption"><strong>Figura 1:</strong> Portal de inicio de sesión con validación en Supabase Auth y selector de tema visual.</div>
+    </div>
+
+    <p style="margin-bottom: 6px;">
+      <strong>Procedimiento de Ingreso:</strong> Digite su correo institucional (ej. <code>cajero@empresa.com</code>) y contraseña asignada (use el icono de ojo para verificar los caracteres). Al hacer clic en <strong>"Ingresar al Sistema"</strong>, Supabase valida su perfil y lo redirige a su módulo.
+    </p>
+
+    <h2>4.1 Matriz de Roles y Privilegios (RBAC)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Rol Asignado</th>
+          <th>Permisos y Alcance en el Sistema</th>
+          <th>Ruta Inicial por Defecto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-user">USUARIO (Cajero)</span></td>
+          <td>
+            • Registro ágil de ventas e ingresos del turno activo.<br>
+            • Registro de gastos y salidas de caja chica.<br>
+            • Consulta exclusiva de su propio cuadre de caja diario.<br>
+            • Bloqueo automático para consultar ventas de días pasados o de otros cajeros.
+          </td>
+          <td><code>/user/income</code> (Registrar Ingreso)</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-admin">ADMIN (Gerente)</span></td>
+          <td>
+            • Acceso ilimitado al Dashboard Gerencial y KPIs globales.<br>
+            • Filtro temporal de transacciones (Mes, Semana, Histórico, Rango).<br>
+            • Auditoría de transacciones por usuario responsable (columna <code>created_by</code>).<br>
+            • Herramientas de edición y anulación controlada de cobros y gastos.
+          </td>
+          <td><code>/admin/dashboard</code> (Dashboard)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 5: MÓDULO OPERADOR - REGISTRO DE INGRESOS (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h1><span class="section-num">05</span> Módulos del Sistema</h1>
+
+    <h2>5.1 Módulo del Operador (Cajero): Registro de Ingresos</h2>
+    <p>
+      Diseñado para puntos de venta o cajas receptoras. Permite asentar de forma instantánea cualquier cobro recibido durante el turno laboral, sumándolo automáticamente al total recaudado.
+    </p>
+
+    <div class="figure-box">
+      <img src="screenshots/02_registro_ingreso.png" alt="Registro de Nuevo Ingreso">
+      <div class="figure-caption"><strong>Figura 2:</strong> Formulario de captura de ingresos con selector de método de pago y monitor del total recaudado en el turno.</div>
+    </div>
+
+    <h3>Campos y Funcionalidades del Formulario:</h3>
+    <ul>
+      <li><strong>Banner de Turno Activo:</strong> Muestra la fecha del día y el monto total acumulado hasta el momento en tiempo real (ej. <code>Recaudado Hoy: L. 4,210.50</code>).</li>
+      <li><strong>Monto en Lempiras (L.) *:</strong> Campo numérico obligatorio donde se digita el importe recibido.</li>
+      <li><strong>Métodos de Pago Disponibles:</strong>
+        <ul>
+          <li><strong>Efectivo:</strong> Dinero billete/moneda que ingresa a la gaveta física de caja.</li>
+          <li><strong>Tarjeta:</strong> Transacciones procesadas a través de la terminal POS bancaria.</li>
+          <li><strong>Transferencia:</strong> Depósitos bancarios directos o transferencias por banca en línea.</li>
+        </ul>
+      </li>
+      <li><strong>Descripción / Concepto (Opcional):</strong> Detalle del cobro, número de factura o nombre del cliente.</li>
+      <li><strong>Botón "Guardar Ingreso":</strong> Almacena el registro en Supabase y emite una confirmación visual inmediata.</li>
+    </ul>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 6: MÓDULO OPERADOR - REGISTRO DE EGRESOS (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h2>5.2 Módulo del Operador (Cajero): Registro de Egresos</h2>
+    <p>
+      Facilita la salida justificada de dinero de caja menor para cubrir gastos operativos o compras inmediatas, restándose automáticamente del balance neto del día.
+    </p>
+
+    <div class="figure-box">
+      <img src="screenshots/03_registro_egreso.png" alt="Registro de Nuevo Egreso">
+      <div class="figure-caption"><strong>Figura 3:</strong> Formulario de egresos con matriz de categorías de gastos operativos.</div>
+    </div>
+
+    <h3>Categorías de Gastos Permitidas:</h3>
+    <ul>
+      <li><strong>Servicios:</strong> Pagos de servicios públicos (energía eléctrica, agua potable, internet) o recarga de datos para terminales POS.</li>
+      <li><strong>Insumos:</strong> Compra de rollos térmicos para tickets, bolsas, papelería y suministros de oficina.</li>
+      <li><strong>Salarios:</strong> Pagos de jornadas diarias o anticipos autorizados a colaboradores.</li>
+      <li><strong>Mantenimiento:</strong> Reparación de cerraduras, fontanería, mantenimiento de equipos de cómputo o limpieza.</li>
+      <li><strong>Otros Gastos:</strong> Gastos varios no contemplados en las clasificaciones anteriores.</li>
+    </ul>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 7: MÓDULO OPERADOR - CUADRE DE CAJA DIARIO (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h2>5.3 Módulo del Operador: Historial y Cuadre de Caja Diario</h2>
+    <p>
+      Herramienta indispensable para el cierre de turno del cajero. Realiza el <strong>Arqueo de Caja Automático</strong>, evitando errores matemáticos y discrepancias de dinero.
+    </p>
+
+    <div class="figure-box">
+      <img src="screenshots/04_cuadre_caja.png" alt="Historial y Cuadre de Caja Diario">
+      <div class="figure-caption"><strong>Figura 4:</strong> Vista de cuadre de caja con desglose de valores físicos, comprobantes electrónicos y lista de movimientos del turno.</div>
+    </div>
+
+    <h3>Análisis de las Secciones del Cuadre:</h3>
+    <ol>
+      <li><strong>Tarjetas de Balance Principal:</strong> Total Ingresos (+), Total Egresos (-) y Cuadre Final (Balance Neto).</li>
+      <li><strong>Desglose por Tipo de Cobro (Crucial para el Arqueo Físico):</strong>
+        <ul>
+          <li><strong>Efectivo Físico (En caja):</strong> Monto exacto que el operador <strong>debe contar físicamente en la gaveta</strong>.</li>
+          <li><strong>Ventas con Tarjeta:</strong> Monto que debe coincidir con el reporte "Cierre de Lote" de la terminal POS.</li>
+          <li><strong>Transferencias:</strong> Total de comprobantes bancarios digitales transferidos a las cuentas de la empresa.</li>
+        </ul>
+      </li>
+      <li><strong>Historial Cronológico de Movimientos:</strong> Lista detallada de cada transacción del día con hora, concepto, método de pago y monto. Permite filtrar por <em>"Todos"</em>, <em>"Solo Ingresos"</em> o <em>"Solo Egresos"</em>.</li>
+    </ol>
+
+    <div class="callout callout-tip" style="margin-top: 6px;">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <div class="callout-title">Regla de Oro para el Arqueo de Caja</div>
+        Al finalizar la jornada laboral, el dinero físico en la gaveta debe coincidir exactamente con el valor mostrado en <strong>"Efectivo Físico (En caja)"</strong> menos los egresos cancelados en efectivo. Si coinciden, la caja está cuadrada al 100%.
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 8: MÓDULO ADMINISTRADOR - DASHBOARD GERENCIAL (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h2>5.4 Módulo del Administrador: Dashboard Gerencial</h2>
+    <p>
+      Proporciona a la gerencia, auditores y directores una visión panorámica y analítica del rendimiento financiero, consolidando las operaciones de todos los usuarios y turnos.
+    </p>
+
+    <div class="figure-box">
+      <img src="screenshots/05_dashboard_admin.png" alt="Dashboard Administrativo">
+      <div class="figure-caption"><strong>Figura 5:</strong> Panel analítico gerencial con filtros temporales dinámicos, desglose por métodos y categorías, y feed de transacciones recientes.</div>
+    </div>
+
+    <h3>Capacidades Principales del Dashboard:</h3>
+    <ul>
+      <li><strong>Filtros Temporales Instantáneos:</strong> Alterne entre <em>Hoy</em>, <em>Esta Semana</em>, <em>Este Mes</em>, <em>Total Histórico</em> o un <em>Rango Personalizado</em> con un solo clic.</li>
+      <li><strong>Tarjetas de Balance Global:</strong> Monitoreo de Total Ingresos, Total Egresos y Margen Operativo Neto del periodo elegido.</li>
+      <li><strong>Matriz de Cobros:</strong> Identifica el volumen ingresado en efectivo frente a transferencias y tarjetas de crédito/débito.</li>
+      <li><strong>Distribución de Gastos:</strong> Muestra en qué categorías operativas se concentra el gasto empresarial (Servicios, Mantenimiento, Insumos, etc.).</li>
+      <li><strong>Últimas Transacciones:</strong> Tabla en tiempo real con las últimas 5 operaciones y el cajero responsable de cada una.</li>
+    </ul>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 9: MÓDULO ADMINISTRADOR - GESTIÓN GLOBAL DE INGRESOS (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h2>5.5 Módulo del Administrador: Gestión Global de Ingresos</h2>
+    <p>
+      Libro maestro de ingresos donde el Administrador audita cada cobro efectuado en la empresa con trazabilidad absoluta del operador que realizó la transacción.
+    </p>
+
+    <div class="figure-box">
+      <img src="screenshots/06_gestion_ingresos.png" alt="Gestión de Ingresos para el Administrador">
+      <div class="figure-caption"><strong>Figura 6:</strong> Tabla de auditoría de ingresos con identificación de usuario creador, buscador en tiempo real, filtro por fecha y herramientas de edición/borrado.</div>
+    </div>
+
+    <h3>Herramientas de Auditoría y Control:</h3>
+    <ul>
+      <li><strong>Columna "Usuario / Cajero":</strong> Vincula la clave foránea <code>incomes.created_by</code> con la tabla <code>profiles.full_name</code>, revelando el nombre del colaborador que registró el dinero.</li>
+      <li><strong>Buscador Inteligente:</strong> Filtra al instante por descripción, cliente, cajero o método de pago sin recargar la página.</li>
+      <li><strong>Filtro por Fecha Calendario:</strong> Permite consultar el libro de ingresos de cualquier fecha histórica específica.</li>
+      <li><strong>Herramientas de Mantenimiento:</strong> Botones de edición (icono lápiz) y anulación/eliminación (icono papelera) protegidos por confirmación.</li>
+    </ul>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 10: MÓDULO ADMINISTRADOR - GESTIÓN GLOBAL DE EGRESOS (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h2>5.6 Módulo del Administrador: Gestión Global de Egresos</h2>
+    <p>
+      Módulo de fiscalización de todos los gastos corporativos y salidas de caja de la organización.
+    </p>
+
+    <div class="figure-box">
+      <img src="screenshots/07_gestion_egresos.png" alt="Gestión de Egresos para el Administrador">
+      <div class="figure-caption"><strong>Figura 7:</strong> Módulo de gestión y fiscalización de gastos operativos corporativos.</div>
+    </div>
+
+    <h3>Funcionalidades del Libro de Egresos:</h3>
+    <ul>
+      <li><strong>Supervisión de Desembolsos:</strong> Monitorea la fecha, usuario solicitante, categoría y justificación de cada gasto.</li>
+      <li><strong>Filtro Multicriterio:</strong> Permite filtrar simultáneamente por categoría de gasto (Insumos, Servicios, Mantenimiento, Salarios) y por fecha.</li>
+      <li><strong>Corrección y Anulación:</strong> Permite al Administrador corregir montos mal ingresados o anular gastos no autorizados.</li>
+    </ul>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 11: PROCEDIMIENTOS P-01 A P-03 (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h1><span class="section-num">06</span> Procedimientos Básicos de Operación</h1>
+    <p>
+      Guía paso a paso para la realización de las actividades operativas más frecuentes en el sistema.
+    </p>
+
+    <!-- P-01 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">1</div>
+        <div class="step-title">Procedimiento P-01: Iniciar Sesión en la Plataforma</div>
+      </div>
+      <ol>
+        <li>Abra el navegador web e ingrese a <code>https://proyecto-bd-eight.vercel.app</code>.</li>
+        <li>En el campo <strong>"Correo Electrónico"</strong>, digite su correo institucional registrado.</li>
+        <li>En el campo <strong>"Contraseña"</strong>, introduzca su clave de acceso. (Puede verificarla haciendo clic en el icono de ojo).</li>
+        <li>Haga clic en <strong>"Ingresar al Sistema"</strong>.</li>
+        <li>El sistema autenticará con Supabase y lo redirigirá a su módulo (Cajero a Registrar Ingreso, Administrador al Dashboard).</li>
+      </ol>
+    </div>
+
+    <!-- P-02 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">2</div>
+        <div class="step-title">Procedimiento P-02: Registrar una Venta o Cobro de Ingreso</div>
+      </div>
+      <ol>
+        <li>En el menú superior, seleccione la pestaña <strong>"Registrar Ingreso"</strong> (ruta <code>/user/income</code>).</li>
+        <li>En el campo <strong>"Monto en Lempiras (L.)"</strong>, digite el importe cobrado (ej. <code>1250.00</code>).</li>
+        <li>Seleccione el método de pago correspondiente: <strong>Efectivo</strong>, <strong>Tarjeta</strong> o <strong>Transferencia</strong>.</li>
+        <li>En <strong>"Descripción / Concepto"</strong>, describa el cobro (ej. <em>"Venta mostrador factura #104"</em>).</li>
+        <li>Presione el botón verde <strong>"Guardar Ingreso"</strong>. El monto se sumará de inmediato al total del turno.</li>
+      </ol>
+    </div>
+
+    <!-- P-03 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">3</div>
+        <div class="step-title">Procedimiento P-03: Registrar un Egreso o Gasto Operativo</div>
+      </div>
+      <ol>
+        <li>En la barra superior, haga clic en <strong>"Registrar Egreso"</strong> (ruta <code>/user/expense</code>).</li>
+        <li>En <strong>"Monto del Gasto (L.)"</strong>, digite el dinero que sale de caja.</li>
+        <li>Haga clic sobre la tarjeta de la <strong>Categoría</strong> adecuada (<em>Servicios, Insumos, Salarios, Mantenimiento u Otros</em>).</li>
+        <li>Escriba la justificación del gasto en <strong>"Descripción / Detalle"</strong> (ej. <em>"Compra de 2 rollos de papel para tickets"</em>).</li>
+        <li>Presione el botón rojo <strong>"Guardar Egreso"</strong>.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 12: PROCEDIMIENTOS P-04 A P-07 (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <!-- P-04 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">4</div>
+        <div class="step-title">Procedimiento P-04: Realizar el Cuadre y Arqueo al Cierre de Turno</div>
+      </div>
+      <ol>
+        <li>Al terminar la jornada laboral, haga clic en <strong>"Mi Historial / Cuadre"</strong> (ruta <code>/user/history</code>).</li>
+        <li>Revise la tarjeta <strong>"Efectivo Físico (En caja)"</strong>.</li>
+        <li>Cuente físicamente el dinero en billetes y monedas que tiene en la gaveta de caja.</li>
+        <li>Verifique que el dinero en gaveta coincida exactamente con el monto de efectivo indicado en pantalla.</li>
+        <li>Imprima el reporte de cierre de lote de la terminal POS y confirme que coincida con <strong>"Ventas con Tarjeta"</strong>.</li>
+        <li>Entregue los valores físicos y comprobantes al supervisor junto con el reporte de balance neto.</li>
+      </ol>
+    </div>
+
+    <!-- P-05 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">5</div>
+        <div class="step-title">Procedimiento P-05: Filtrar y Analizar Métricas en el Dashboard (Admin)</div>
+      </div>
+      <ol>
+        <li>Inicie sesión con una cuenta de <strong>Administrador</strong> e ingrese a <strong>"Dashboard"</strong> (<code>/admin/dashboard</code>).</li>
+        <li>En la barra superior del panel, seleccione el periodo deseado: <em>Hoy</em>, <em>Esta Semana</em>, <em>Este Mes</em> o <em>Total Histórico</em>.</li>
+        <li>Si requiere un rango específico, haga clic en <em>Personalizado</em> e indique la fecha inicial y final.</li>
+        <li>Analice el <strong>Balance Neto</strong>, el porcentaje de cobros por tarjeta vs efectivo y la concentración de gastos operativos.</li>
+      </ol>
+    </div>
+
+    <!-- P-06 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">6</div>
+        <div class="step-title">Procedimiento P-06: Auditar quién registró un movimiento (Auditoría Admin)</div>
+      </div>
+      <ol>
+        <li>Desde el menú del Administrador, ingrese a <strong>"Gestión de Ingresos"</strong> o <strong>"Gestión de Egresos"</strong>.</li>
+        <li>Utilice la barra de búsqueda para filtrar por concepto o fecha.</li>
+        <li>Localice la fila correspondiente y revise la columna <strong>"Usuario / Cajero"</strong>.</li>
+        <li>Allí se muestra el nombre oficial del colaborador registrado en la base de datos que efectuó la operación.</li>
+      </ol>
+    </div>
+
+    <!-- P-07 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">7</div>
+        <div class="step-title">Procedimiento P-07: Cierre Seguro de Sesión</div>
+      </div>
+      <ol>
+        <li>En el extremo superior derecho del encabezado, localice el botón <strong>"Salir"</strong> (icono de puerta).</li>
+        <li>Haga clic en <strong>"Salir"</strong>. El sistema destruirá la sesión activa de Supabase Auth.</li>
+        <li>Será redirigido al portal de login, garantizando que nadie pueda realizar operaciones con su cuenta.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       PÁGINA 13: PREGUNTAS FRECUENTES Y SOPORTE (1 PÁGINA)
+       ======================================================================== -->
+  <div class="page">
+    <h1><span class="section-num">07</span> Preguntas Frecuentes y Soporte Técnico</h1>
+
+    <h2>7.1 Preguntas Frecuentes (FAQ)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 32%;">Pregunta / Incidencia</th>
+          <th>Causa Probable</th>
+          <th>Solución Recomendada</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>¿Por qué veo el mensaje "Acceso No Autorizado" al navegar?</strong></td>
+          <td>Intentó ingresar a una ruta administrativa (Dashboard o Gestión Global) con un usuario cajero estándar.</td>
+          <td>El sistema restringe el acceso confidencial por roles (RBAC). Si requiere permisos de administrador, solicite la actualización de rol en la tabla <code>profiles</code> al administrador de sistemas.</td>
+        </tr>
+        <tr>
+          <td><strong>Al registrar un cobro seleccioné un método de pago erróneo, ¿cómo lo corrijo?</strong></td>
+          <td>Error de digitación en el formulario de registro.</td>
+          <td>Notifique de inmediato a su Administrador. El Administrador puede ingresar al módulo <em>Gestión de Ingresos</em>, ubicar la transacción y editar el método de pago con el botón de edición.</td>
+        </tr>
+        <tr>
+          <td><strong>¿Por qué el efectivo físico en gaveta no es igual al Total de Ingresos?</strong></td>
+          <td>El Total de Ingresos agrupa efectivo + tarjetas + transferencias.</td>
+          <td>Para el arqueo de gaveta física solo debe compararse contra la tarjeta <strong>"Efectivo Físico (En caja)"</strong>. Los cobros con tarjeta y transferencias se encuentran en las cuentas bancarias.</td>
+        </tr>
+        <tr>
+          <td><strong>¿Cómo alterno entre el Modo Oscuro y el Modo Claro?</strong></td>
+          <td>Preferencia visual ergonómica del operador.</td>
+          <td>Haga clic en el icono de Sol o Luna ubicado en la cabecera superior derecha. La preferencia se guarda automáticamente en su navegador.</td>
+        </tr>
+        <tr>
+          <td><strong>¿El sistema funciona en teléfonos móviles o tabletas?</strong></td>
+          <td>Uso en dispositivos táctiles de mostrador.</td>
+          <td>Sí, la interfaz es 100% responsiva y se adapta con menús táctiles optimizados para cualquier dispositivo móvil o tableta.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warning">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <div class="callout-title">Norma de Seguridad y Responsabilidad de Caja</div>
+        Nunca comparta su contraseña ni deje su sesión abierta al abandonar el puesto de trabajo. Cada ingreso y egreso queda firmado con su UUID de usuario en la base de datos para auditorías financieras y de responsabilidad legal.
+      </div>
+    </div>
+
+    <div style="margin-top: auto; margin-bottom: 5mm; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 10px; color: #64748b; font-size: 7.8pt;">
+      <strong>Manual de Usuario Oficial — Sistema de Control Financiero v1.0.0</strong><br>
+      Desarrollado con React 18, TypeScript, Tailwind CSS, Supabase PostgreSQL y Vercel Edge Network.
+    </div>
+  </div>
+
+</body>
+</html>

@@ -12,13 +12,39 @@ import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 /**
+ * Parsea con seguridad fechas provenientes de la base de datos (Supabase / PostgreSQL).
+ * - Si PostgreSQL retorna un timestamp sin zona horaria (UTC naive ej: '2026-09-17T00:45:00'),
+ *   le anexa 'Z' para que el navegador lo interprete en UTC y lo proyecte con exactitud
+ *   al huso horario local de Honduras (America/Tegucigalpa, UTC-6).
+ * @param dateStr - Fecha ISO o texto timestamp de PostgreSQL
+ * @returns Date - Objeto Date ajustado
+ */
+export const parseDatabaseDate = (dateStr: string): Date => {
+  if (!dateStr) return new Date();
+  let s = String(dateStr).trim();
+  if (s.includes(' ') && !s.includes('T')) {
+    s = s.replace(' ', 'T');
+  }
+  if (/[+-]\d{2}$/.test(s)) {
+    s = s + ':00';
+  }
+  const hasTimezone = s.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(s);
+  if (!hasTimezone) {
+    s = s + 'Z';
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? new Date(dateStr) : d;
+};
+
+/**
  * Valida si una fecha dada en formato string ISO corresponde exactamente al día de hoy.
+ * Considera la zona horaria local de Honduras (UTC-6).
  * @param dateStr - Fecha en formato ISO 8601 o timestamp
  * @returns boolean - true si la fecha corresponde a la jornada actual
  */
 export const isToday = (dateStr: string): boolean => {
   try {
-    const d = new Date(dateStr);
+    const d = parseDatabaseDate(dateStr);
     const now = new Date();
     return (
       d.getFullYear() === now.getFullYear() &&
@@ -185,7 +211,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
           paymentMethod: (row.payment_method as PaymentMethod) || 'efectivo',
           description: row.description || '',
           createdBy: row.created_by,
-          createdAt: row.created_at,
+          createdAt: parseDatabaseDate(row.created_at).toISOString(),
           userName: row.profiles?.full_name || (row.created_by === user?.id ? user?.fullName : 'Usuario'),
         }));
         setIncomes(mappedIncomes);
@@ -216,7 +242,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
           amount: Number(row.amount),
           description: row.description || '',
           createdBy: row.created_by,
-          createdAt: row.created_at,
+          createdAt: parseDatabaseDate(row.created_at).toISOString(),
           userName: row.profiles?.full_name || (row.created_by === user?.id ? user?.fullName : 'Usuario'),
         }));
         setExpenses(mappedExpenses);
@@ -252,6 +278,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
             payment_method: data.paymentMethod,
             description: data.description,
             created_by: user.id,
+            created_at: new Date().toISOString(),
           },
         ]);
 
@@ -365,6 +392,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
             category: data.category,
             description: data.description,
             created_by: user.id,
+            created_at: new Date().toISOString(),
           },
         ]);
 

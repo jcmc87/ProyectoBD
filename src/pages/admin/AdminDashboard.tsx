@@ -77,9 +77,13 @@ export const AdminDashboard: React.FC = () => {
         );
       case 'personalizado': {
         if (!startDate && !endDate) return true;
-        const start = startDate ? new Date(`${startDate}T00:00:00`) : new Date(0);
-        const end = endDate ? new Date(`${endDate}T23:59:59`) : new Date(8640000000000000);
-        return itemDate >= start && itemDate <= end;
+        const year = itemDate.getFullYear();
+        const month = String(itemDate.getMonth() + 1).padStart(2, '0');
+        const day = String(itemDate.getDate()).padStart(2, '0');
+        const itemLocalDate = `${year}-${month}-${day}`;
+        if (startDate && itemLocalDate < startDate) return false;
+        if (endDate && itemLocalDate > endDate) return false;
+        return true;
       }
       case 'todos':
       default:

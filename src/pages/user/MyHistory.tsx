@@ -27,6 +27,8 @@ const formatMoney = (amount: number): string => {
  */
 export const MyHistory: React.FC = () => {
   const { 
+    incomes,
+    expenses,
     todayIncomes, 
     todayExpenses, 
     todayTotalIncome, 
@@ -49,11 +51,16 @@ export const MyHistory: React.FC = () => {
   });
 
   /**
-   * Consolida ingresos y egresos en una sola lista unificada
+   * Consolida ingresos y egresos en una sola lista unificada.
+   * Si hay una fecha seleccionada en el filtro, busca en el histórico general del usuario.
+   * Si no, muestra los movimientos del turno activo de hoy.
    */
   const allTransactions: TransactionItem[] = useMemo(() => {
+    const sourceIncomes = selectedDate ? incomes : todayIncomes;
+    const sourceExpenses = selectedDate ? expenses : todayExpenses;
+
     const list: TransactionItem[] = [
-      ...todayIncomes.map((inc) => ({
+      ...sourceIncomes.map((inc) => ({
         id: inc.id,
         type: 'ingreso' as const,
         description: inc.description,
@@ -62,7 +69,7 @@ export const MyHistory: React.FC = () => {
         createdAt: inc.createdAt,
         userName: inc.userName,
       })),
-      ...todayExpenses.map((exp) => ({
+      ...sourceExpenses.map((exp) => ({
         id: exp.id,
         type: 'egreso' as const,
         description: exp.description,
@@ -73,10 +80,10 @@ export const MyHistory: React.FC = () => {
       })),
     ];
     return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [todayIncomes, todayExpenses]);
+  }, [incomes, expenses, todayIncomes, todayExpenses, selectedDate]);
 
   /**
-   * Filtra las transacciones por tipo y por fecha si se especifica
+   * Filtra las transacciones por tipo y por fecha si se especifica (usando hora local de Honduras)
    */
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
@@ -86,12 +93,19 @@ export const MyHistory: React.FC = () => {
       }
       // Filtro por fecha opcional
       if (selectedDate) {
-        const txDate = tx.createdAt.split('T')[0];
-        if (txDate !== selectedDate) return false;
+        const d = new Date(tx.createdAt);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const localDate = `${year}-${month}-${day}`;
+        if (localDate !== selectedDate) return false;
       }
       return true;
     });
   }, [allTransactions, filterType, selectedDate]);
+
+  const incomeCount = useMemo(() => allTransactions.filter((t) => t.type === 'ingreso').length, [allTransactions]);
+  const expenseCount = useMemo(() => allTransactions.filter((t) => t.type === 'egreso').length, [allTransactions]);
 
   return (
     <div className="space-y-6">
@@ -215,10 +229,10 @@ export const MyHistory: React.FC = () => {
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              Historial de Movimientos de Hoy
+              Historial de Movimientos {selectedDate ? `(${selectedDate})` : 'de Hoy'}
             </h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Registros ordenados cronológicamente.
+              {selectedDate ? `Mostrando movimientos filtrados para la fecha seleccionada.` : `Turno actual ordenado cronológicamente.`}
             </p>
           </div>
 
@@ -243,7 +257,7 @@ export const MyHistory: React.FC = () => {
                     : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                Solo Ingresos ({todayIncomes.length})
+                Solo Ingresos ({incomeCount})
               </button>
               <button
                 onClick={() => setFilterType('egreso')}
@@ -253,7 +267,7 @@ export const MyHistory: React.FC = () => {
                     : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                Solo Egresos ({todayExpenses.length})
+                Solo Egresos ({expenseCount})
               </button>
             </div>
 

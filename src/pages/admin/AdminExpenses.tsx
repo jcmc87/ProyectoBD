@@ -65,7 +65,16 @@ export const AdminExpenses: React.FC = () => {
         item.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.category.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesDate = filterDate ? item.createdAt.startsWith(filterDate) : true;
+      let matchesDate = true;
+      if (filterDate) {
+        const d = new Date(item.createdAt);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const localDate = `${year}-${month}-${day}`;
+        matchesDate = localDate === filterDate;
+      }
+
       const matchesCategory = categoryFilter !== 'todas' ? item.category === categoryFilter : true;
 
       return matchesSearch && matchesDate && matchesCategory;
